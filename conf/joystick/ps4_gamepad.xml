@@ -93,7 +93,7 @@
       <field name="index" value="IndexOfSetting('autopilot.kill_throttle')"/>
       <field name="value" value="0"/>
     </message>
-a
+
     <!-- kill throttle on L1 button -->
     <message class="ground" name="DL_SETTING" on_event="L1">
       <field name="index" value="IndexOfSetting('autopilot.kill_throttle')"/>
