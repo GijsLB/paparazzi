@@ -91,7 +91,7 @@ for f in images:
 
 # ======= STEP 5: Apply the Trained Model to a Custom Image =======
 # Custom image path
-image_path = "/home/gijs/paparazzi/test_folder/test_images/cyberzoo_poles/20190121-135009/81578080.jpg"
+image_path = "/home/gijs/paparazzi/prototyping/cyberzoo_poles/20190121-135009/81578080.jpg"
 
 # Load the image
 img = cv2.imread(image_path)
