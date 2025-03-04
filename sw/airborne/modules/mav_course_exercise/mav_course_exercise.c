@@ -1,6 +1,6 @@
 /*
  * Minimal UAV Module - MAV Course Exercise
- * Prints Optical Flow values
+ * Prints Optical Flow valuess
  */
 
  #include "mcu_periph/sys_time.h"
