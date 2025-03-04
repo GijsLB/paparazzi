@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<!DOCTYPE flight_plan SYSTEM "../flight_plan.dtd">
+
+<flight_plan name="simple_test"
+    lat0="51.990634" lon0="4.376789"
+    alt="1.0" ground_alt="0"
+    max_dist_from_home="10"
+    security_height="0.4">
+
+  <waypoints>
+    <waypoint name="HOME" x="0.0" y="0.0" height="0.0"/>
+    <waypoint name="TAKEOFF_POINT" x="0.0" y="0.0" height="1.0"/>
+  </waypoints>
+
+  <blocks>
+    <block key="t" name="Takeoff">
+      <call_once fun="NavSetWaypointHere(WP_TAKEOFF_POINT)"/>
+      <stay wp="TAKEOFF_POINT"/>
+      <deroute block="Land"/>
+    </block>
+
+    <block key="l" name="Land">
+      <go wp="HOME"/>
+      <deroute block="Landed"/>
+    </block>
+
+    <block name="Landed">
+      <call_once fun="NavKillThrottle()"/>
+    </block>
+  </blocks>
+
+</flight_plan>
+

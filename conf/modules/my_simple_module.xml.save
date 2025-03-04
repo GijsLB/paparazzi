@@ -1,0 +1,10 @@
+<module name="my_simple_module">
+  <header>
+    <file name="my_simple_module.h"/>
+  </header>
+  <init fun="my_simple_module_init()"/>
+  <periodic fun="my_simple_module_periodic()" freq="1"/>
+  <makefile>
+    <file name="my_simple_module.c"/>
+  </makefile>
+</module>
