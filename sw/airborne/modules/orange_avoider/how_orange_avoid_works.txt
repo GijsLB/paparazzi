@@ -1,0 +1,121 @@
+# Orange Avoider System Documentation
+
+## Overview
+The Orange Avoider is a module for the Paparazzi UAV system that enables a drone to autonomously detect and avoid orange obstacles (typically poles in the Cyberzoo environment). It uses computer vision to detect orange objects and implements a reactive avoidance strategy.
+
+## Dependencies
+1. **Computer Vision Framework**:
+   - `cv.c/h`: Core computer vision framework for onboard processing
+   - `cv_blob_locator.c/h`: Blob detection and localization
+   - Color filtering capabilities
+
+2. **Navigation System**:
+   - `firmwares/rotorcraft/navigation.h`: For waypoint manipulation
+   - `generated/flight_plan.h`: Contains waypoint definitions and arena boundaries
+
+3. **State Estimation**:
+   - `state.h`: Provides access to drone state (position, orientation)
+
+4. **ABI Messaging System**:
+   - `modules/core/abi.h`: For inter-module communication
+   - Used to receive color detection data from the vision module
+
+5. **Hardware**:
+   - Forward-facing camera (defined in the airframe file)
+
+## How It Works
+
+### Initialization (`orange_avoider_init`)
+1. Sets up a random seed for randomizing avoidance directions
+2. Binds to the ABI messaging system to receive color detection data from the vision module
+
+### Main Loop (`orange_avoider_periodic`)
+The system operates as a state machine with the following states:
+
+1. **SAFE**: 
+   - Moves waypoints forward in the current heading direction
+   - Checks if the trajectory waypoint is inside the arena boundaries
+   - Monitors for obstacles using color detection
+
+2. **OBSTACLE_FOUND**:
+   - Triggered when orange pixels exceed a threshold
+   - Stops forward movement by moving waypoints to current position
+   - Randomly selects a new heading direction (CW or CCW)
+   - Transitions to SEARCH_FOR_SAFE_HEADING
+
+3. **SEARCH_FOR_SAFE_HEADING**:
+   - Incrementally changes heading until a safe direction is found
+   - Transitions back to SAFE when confidence is high enough
+
+4. **OUT_OF_BOUNDS**:
+   - Triggered when trajectory waypoint is outside arena
+   - Changes heading to move back into the arena
+   - Transitions to SEARCH_FOR_SAFE_HEADING when back inside
+
+### Obstacle Detection
+- Uses color filtering to detect orange objects
+- Counts orange pixels in the camera image
+- Compares against a threshold (oa_color_count_frac * image_size)
+- Maintains an "obstacle_free_confidence" counter that increases in clear areas and decreases rapidly when obstacles are detected
+
+### Navigation Strategy
+- Uses three waypoints: GOAL, TRAJECTORY, and RETREAT
+- TRAJECTORY is placed ahead to check if path is clear
+- GOAL is the actual target waypoint the drone flies toward
+- RETREAT is placed behind for potential escape maneuvers
+- When avoiding, the system changes heading and then checks if the new direction is safe
+
+## Configuration Parameters
+- `oa_color_count_frac`: Threshold fraction for obstacle detection (default: 0.18)
+- `heading_increment`: Angle to change heading during avoidance (default: 5 degrees)
+- `maxDistance`: Maximum waypoint displacement (default: 2.25 meters)
+- `max_trajectory_confidence`: Confidence threshold to consider path safe (default: 5)
+
+## Extension Possibilities
+
+### Improved Perception
+1. **Machine Learning-Based Detection**:
+   - Train a CNN to detect obstacles more reliably than color filtering
+   - Could use semantic segmentation to classify different obstacle types
+
+2. **Depth Estimation**:
+   - Implement monocular depth estimation to better gauge obstacle distance
+   - Or add a stereo camera/depth sensor for direct distance measurements
+
+3. **Optical Flow**:
+   - Use optical flow to detect obstacles based on motion patterns
+   - Could help with obstacles that don't match the color profile
+
+### Enhanced Navigation
+1. **Potential Field Methods**:
+   - Implement artificial potential fields for smoother avoidance
+   - Treat obstacles as repulsive forces and goals as attractive forces
+
+2. **Path Planning**:
+   - Add a local path planner to find optimal routes around obstacles
+   - Could use RRT (Rapidly-exploring Random Trees) or similar algorithms
+
+3. **Dynamic Obstacle Tracking**:
+   - Track obstacles over time to predict their movement
+   - Useful for environments with moving obstacles
+
+4. **3D Avoidance**:
+   - Extend to full 3D avoidance (currently mostly 2D)
+   - Allow flying over or under obstacles when appropriate
+
+### System Improvements
+1. **Adaptive Parameters**:
+   - Dynamically adjust thresholds based on lighting conditions
+   - Vary avoidance distances based on drone speed
+
+2. **Multi-Sensor Fusion**:
+   - Combine vision with other sensors (lidar, sonar, etc.)
+   - Improve reliability through redundant sensing
+
+3. **Memory Map**:
+   - Build and maintain a map of previously detected obstacles
+   - Use this for more informed path planning
+
+4. **Performance Optimization**:
+   - Optimize vision processing for lower latency
+   - Implement more efficient algorithms for real-time performance
