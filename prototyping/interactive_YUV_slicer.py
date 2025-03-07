@@ -2,11 +2,18 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
+import matplotlib
+matplotlib.use('Qt5Agg')  # Use interactive backend
+
+
 
 # Load the image
 #image_path = "/home/gijs/paparazzi/prototyping/AE4317_2019_datasets/cyberzoo_poles/20190121-135009/81578080.jpg"
 #image_path = "/home/gijs/Desktop/MAV/notebooks_MAV/YUV_notebook/DelFly_tulip.jpg"
-image_path = "/home/gijs/paparazzi/prototyping/AE4317_2019_datasets/cyberzoo_poles_panels_mats/20190121-142935/38615883.jpg"
+#image_path = "/home/gijs/paparazzi/prototyping/AE4317_2019_datasets/cyberzoo_poles_panels_mats/20190121-142935/38615883.jpg"
+
+import os
+image_path = os.path.expanduser("~/paparazzi/prototyping/AE4317_2019_datasets/cyberzoo_poles_panels_mats/20190121-142935/38815902.jpg")
 
 im = cv2.imread(image_path)
 im = cv2.cvtColor(im, cv2.COLOR_BGR2YUV)  # Convert to YUV
