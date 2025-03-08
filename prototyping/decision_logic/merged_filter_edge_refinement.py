@@ -11,17 +11,15 @@ import matplotlib.pyplot as plt
 NUM_COLUMNS = 100  # Number of vertical columns to divide the image
 NUM_BLOCKS_PER_COLUMN = 40  # Number of horizontal blocks per column
 THRESH_OBSTACLE = 0.4  # Whiteness threshold to determine obstacles
-THRESH_EDGE = 0.2      # Not used directly below, but kept for reference
+THRESH_EDGE = 1.0  # Edge detection threshold
 X_WHITE_TILES = 1      # Min number of white tiles required to reset obstacle classification
-Y_BLACK_TILES = 4      # Number of consecutive black tiles that forces everything above to stay black
+Y_BLACK_TILES = 8      # Number of consecutive black tiles that forces everything above to stay black
 
 # Define image paths
 
-image_name = "21382693.jpg" #first
-image_name = "49182469.jpg" 
-image_name = "39415877.jpg" #net
+image_name = "1248048448.jpg"
 
-input_dir = os.path.expanduser("~/paparazzi/prototyping/decision_logic/test_frames")
+input_dir = os.path.expanduser("~/paparazzi/prototyping/collected_datasets/Test3_7maart_tapijt")
 image_path = os.path.join(input_dir, image_name)
 
 # Load the original image
@@ -31,7 +29,7 @@ if image is None:
 
 # Convert to YUV and apply green filter
 image_yuv = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
-green_filter = ((75, 250), (110, 155), (50, 145))
+green_filter = ((90, 210), (75, 115), (69, 145))
 
 def apply_green_filter(image, y_range, u_range, v_range):
     mask = (
@@ -54,7 +52,7 @@ kernel = np.ones((5,5), np.uint8)
 image_closed = cv2.morphologyEx(green_filtered, cv2.MORPH_CLOSE, kernel)
 
 # Edge detection (not critical to the bottom-up logic)
-edges = cv2.Canny(image, 30, 100)
+edges = cv2.Canny(image, 100, 150)
 edge_density = cv2.blur(edges, (5,5))
 
 # Define segmentation parameters
@@ -141,7 +139,7 @@ for col in range(NUM_COLUMNS):
     for block in range(NUM_BLOCKS_PER_COLUMN):
         x_start, y_start = col * column_width, block * block_height
         x_end, y_end = (col + 1) * column_width, (block + 1) * block_height
-        
+        x_end = min((col + 1) * column_width, width)  # Ensure it does not exceed image width
         overlay = filtered_image.copy()
         
         if adjusted_whiteness_matrix[col, block] == 1:

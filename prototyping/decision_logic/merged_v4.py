@@ -14,16 +14,15 @@ THRESH_OBSTACLE = 0.4  # Whiteness threshold to determine obstacles
 X_WHITE_TILES = 1      # Min number of white tiles required to reset obstacle classification
 Y_BLACK_TILES = 8      # Number of consecutive black tiles that forces everything above to stay black
 
-MAX_STRIP_WIDTH = 1    # Max width for a "thin" strip of columns
-EDGE_DIFF = 1          # The difference in ground–obstacle edge to neighbors
+MAX_STRIP_WIDTH = 2    # Max width for a "thin" strip of columns
+EDGE_DIFF = 5          # The difference in ground–obstacle edge to neighbors
 TOP_HALF_LIMIT = NUM_BLOCKS_PER_COLUMN // 2  # "top half" boundary
 
 # Define image paths
-image_name = "39415877.jpg" # net
-image_name = "21382693.jpg" # first
-image_name = "49182469.jpg"
 
-input_dir = os.path.expanduser("~/paparazzi/prototyping/decision_logic/test_frames")
+image_name = "1168049056.jpg"
+
+input_dir = os.path.expanduser("~/paparazzi/prototyping/collected_datasets/Test3_7maart_tapijt")
 image_path = os.path.join(input_dir, image_name)
 
 # Load the original image
