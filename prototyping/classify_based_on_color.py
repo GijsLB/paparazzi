@@ -1,3 +1,4 @@
+# Import necessary libraries
 import cv2
 import numpy as np
 import glob
@@ -6,7 +7,6 @@ from matplotlib import pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier, export_text
 from sklearn.metrics import accuracy_score
-import os
 
 # ======= STEP 1: Load Training Images & Masks =======
 images = glob.glob('/home/gijs/Desktop/MAV/notebooks_MAV/MAV_ML_notebook/data/*c.jpg')
@@ -14,6 +14,8 @@ labels = glob.glob('/home/gijs/Desktop/MAV/notebooks_MAV/MAV_ML_notebook/data/*m
 
 print(f"Found {len(images)} images:", images)
 print(f"Found {len(labels)} masks:", labels)
+
+print(f"Found {len(images)} images and {len(labels)} masks.")
 
 # ======= STEP 2: Convert Images to Training Data =======
 X_vec = []
@@ -72,8 +74,26 @@ print(f'Model Accuracy: {round(score, 3)}')
 # Print the decision tree rules
 print(export_text(dt, feature_names=['Y', 'U', 'V']))
 
+for f in images:
+    img = cv2.imread(f)
+    h,w,d = img.shape
+
+    # Load an image
+    yuv = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
+
+    X_run = yuv.reshape(int(h*w),int(d))
+    y_pred = dt.predict(X_run)
+    msk = y_pred.reshape(h,w)
+    
+    img[:,:,1] = msk[:,:]
+
+    plt.imshow(img)
+
 # ======= STEP 5: Apply the Trained Model to a Custom Image =======
+# Custom image path
 image_path = "/home/gijs/paparazzi/prototyping/cyberzoo_poles/20190121-135009/81578080.jpg"
+
+# Load the image
 img = cv2.imread(image_path)
 img = cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
 
@@ -99,26 +119,16 @@ msk = y_pred.reshape(h, w)
 classified_img = img.copy()
 classified_img[:, :, 1] = msk[:, :]
 
-# ======= Display & Save Both Images =======
-# Resize images for easier labeling (e.g., 50% of original size)
-scale_factor = 0.5  # Adjust this to make the images smaller/larger
-resized_original = cv2.resize(img, (int(w * scale_factor), int(h * scale_factor)))
-resized_classified = cv2.resize(classified_img, (int(w * scale_factor), int(h * scale_factor)))
+# ======= Display Original and Classified Image Side by Side =======
+fig, ax = plt.subplots(1, 2, figsize=(12, 6))
 
-# Save images
-output_folder = "/home/gijs/Desktop/MAV/notebooks_MAV/MAV_ML_notebook/results/"
-os.makedirs(output_folder, exist_ok=True)
-
-cv2.imwrite(os.path.join(output_folder, "original_image.jpg"), img)
-cv2.imwrite(os.path.join(output_folder, "classified_image.jpg"), classified_img)
-
-# Display images
-fig, ax = plt.subplots(1, 2, figsize=(8, 4))  # Adjust figure size
-ax[0].imshow(cv2.cvtColor(resized_original, cv2.COLOR_BGR2RGB))
+# Display Original Image
+ax[0].imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
 ax[0].set_title("Original Image")
 ax[0].axis("off")
 
-ax[1].imshow(cv2.cvtColor(resized_classified, cv2.COLOR_YUV2RGB))  # Convert back to RGB for visualization
+# Display Classified Image
+ax[1].imshow(cv2.cvtColor(classified_img, cv2.COLOR_YUV2RGB))  # Convert back to RGB for visualization
 ax[1].set_title("Classified Image")
 ax[1].axis("off")
 

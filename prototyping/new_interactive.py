@@ -9,7 +9,7 @@ import matplotlib
 matplotlib.use('TkAgg')  # Use Tkinter backend for GUI compatibility
 
 # Load the image
-image_path = os.path.expanduser("~/paparazzi/prototyping/AE4317_2019_datasets/cyberzoo_poles_panels_mats/20190121-142935/49315851.jpg")
+image_path = os.path.expanduser("~/paparazzi/prototyping/AE4317_2019_datasets/cyberzoo_poles_panels_mats/20190121-142935/39415877.jpg")
 
 # Read and convert the image
 im = cv2.imread(image_path)
