@@ -22,7 +22,6 @@ if not os.path.exists(output_dir):
 
 # Start processing only after finding this image
 process_images = False  
-
 for image_name in sorted(os.listdir(input_dir)):  
     if not image_name.endswith(".jpg"):
         continue  
