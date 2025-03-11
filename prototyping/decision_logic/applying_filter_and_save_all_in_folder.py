@@ -7,8 +7,8 @@ import os
 # ======================
 NUM_COLUMNS = 100  
 NUM_BLOCKS_PER_COLUMN = 40  
-THRESH_OBSTACLE = 0.4  
-THRESH_EDGE = 0.7      
+THRESH_OBSTACLE = 0.4
+THRESH_EDGE = 0.7
 X_WHITE_TILES = 1      
 Y_BLACK_TILES = 8      
 
