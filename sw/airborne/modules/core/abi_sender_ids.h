@@ -572,6 +572,17 @@
 #endif
 
 /*
+ * EDGE_SCORE communication (message 38)
+*/
+#ifndef EDGE_SCORE1_ID
+#define EDGE_SCORE1_ID 1
+#endif
+
+#ifndef EDGE_SCORE2_ID
+#define EDGE_SCORE2_ID 2
+#endif
+
+/*
  * JOYSTICK message (used for payload or control, but not as a RC)
  */
 #ifndef JOYSTICK_ID

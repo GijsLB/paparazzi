@@ -257,6 +257,10 @@
       <field name="data" type="uint8_t*">pointer to the data of the matrix</field>
     </message>
 
+    <message name="EDGE_SCORE" id="38">
+      <field name="final_score" type="int16_t">edge detector score</field>
+    </message>
+
   </msg_class>
 
 </protocol>
