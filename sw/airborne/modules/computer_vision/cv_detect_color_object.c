@@ -31,12 +31,6 @@
 #include "modules/core/abi.h"
 #include "std.h"
 
-
-// // Addition
-// #include "modules/core/abi_sender_ids.h"         // DRONE_ATTITUDE_ID
-// #include "state.h"                             // <--- ADDED: for stateGetNedToBodyEulers_f()
-// #include "paparazzi.h"                         // for AC_ID, etc.
-// // 
 #include <stdio.h>
 #include <stdbool.h>
 #include <math.h>
@@ -280,8 +274,9 @@ void color_object_detector_periodic(void)
     local_filters[1].updated = false;
   }
   // 2) Now also publish the DRONE_ATTITUDE message <--- ADDED
-  //    Let’s read the Euler angles (in radians) from the state
+  // Retriev the Euler angles from stateGet of state.h which returns a pointer
   const struct FloatEulers *eul = stateGetNedToBodyEulers_f();
+  //    Extract the Euler angles 
   float roll  = eul->phi;
   float pitch = eul->theta;
   float yaw   = eul->psi;

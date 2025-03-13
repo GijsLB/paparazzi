@@ -25,9 +25,6 @@
 #include <time.h>
 #include <stdio.h>
 
-// Addition
-#include "modules/core/abi_sender_ids.h" // DRONE_ATTITUDE_ID
-
 #define NAV_C // needed to get the nav functions like Inside...
 #include "generated/flight_plan.h"
 
