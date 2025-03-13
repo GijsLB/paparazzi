@@ -3,9 +3,11 @@ import numpy as np
 import glob
 import os
 
+
 # === CONFIGURATION ===
-image_folder = "/home/berg/paparazzi/prototyping/AE4317_2019_datasets/cyberzoo_poles/20190121-135009"
-output_folder = "/home/berg/paparazzi/prototyping/our_labelled_data"
+#image_folder = "/home/berg/paparazzi/prototyping/AE4317_2019_datasets/cyberzoo_poles/20190121-135009"
+image_folder = "/home/berg/paparazzi/prototyping/Groundtruth/testlabel1"
+output_folder = "/home/berg/paparazzi/prototyping/Groundtruth/labbeledGT"
 brush_size = 10  # Brush size for visualization
 
 # Ensure output folder exists
@@ -14,6 +16,7 @@ os.makedirs(output_folder, exist_ok=True)
 # Get all images that need labeling (skip already labeled ones)
 image_paths = sorted(glob.glob(os.path.join(image_folder, "*.jpg")))
 image_paths = [p for p in image_paths if not os.path.exists(p.replace(".jpg", "m.png"))]  # Change mask extension to PNG
+
 
 # Drawing settings
 points = []  # List of points for polygon selection
