@@ -81,6 +81,13 @@ static void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
   color_count = quality;
 }
 
+static abi_event edge_count_ev;
+static void edge_count_cb(uint8_t __attribute__((unused)) sender_id, uint32_t edge_count)
+{
+  printf("[orange_avoider] Received edge count: %u\n", edge_count);
+}
+
+
 /*
  * Initialisation function, setting the colour filter, random seed and heading_increment
  */
@@ -92,7 +99,13 @@ void orange_avoider_init(void)
 
   // bind our colorfilter callbacks to receive the color filter outputs
   AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &color_detection_ev, color_detection_cb);
+<<<<<<< HEAD
   // AbiBindMsgEDGE_COUNT(EDGE_COUNT_ID, &edge_count_ev, edge_count_cb);
+=======
+
+  // Bind the edge detection message
+  AbiBindMsgEDGE_COUNT(EDGE_COUNT_ID, &edge_count_ev, edge_count_cb);
+>>>>>>> f95ca1bd8 (Orange_avoider now also counts the edges it sees in front of the drone. It gets this information through an ABI message from cv_detect_color_objects.c)
 }
 
 /*

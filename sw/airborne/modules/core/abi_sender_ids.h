@@ -629,13 +629,19 @@
 #endif
 
 /*
+* ID for EDGE_COUNT
+*/
+#ifndef EDGE_COUNT_ID
+#define EDGE_COUNT_ID 35 // Approach Moving Target
+#endif
+
+/*
  * IDs of VEL_SP senders
  */
 
 #ifndef VEL_SP_FCR_ID
 #define VEL_SP_FCR_ID 1 // Approach Moving Target
 #endif
-
 
 /*
  * IDs of LIDAR_DATA senders
