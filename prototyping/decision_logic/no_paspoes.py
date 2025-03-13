@@ -161,7 +161,9 @@ for col in range(NUM_COLUMNS):
             else:
                 overlay[y_start:y_end, x_start:x_end] = (0,0,255)
         
-        cv2.addWeighted(overlay, 0.7, filtered_image, 0.3, 0, filtered_image)
+        #cv2.addWeighted(overlay, 0.7, filtered_image, 0.3, 0, filtered_image)
+        filtered_image = overlay.copy()
+
 
 # For debugging
 whiteness_array = 1 - np.mean(whiteness_matrix, axis=1)

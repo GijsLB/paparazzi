@@ -92,6 +92,7 @@ void orange_avoider_init(void)
 
   // bind our colorfilter callbacks to receive the color filter outputs
   AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &color_detection_ev, color_detection_cb);
+  // AbiBindMsgEDGE_COUNT(EDGE_COUNT_ID, &edge_count_ev, edge_count_cb);
 }
 
 /*
