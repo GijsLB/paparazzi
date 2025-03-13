@@ -266,28 +266,3 @@ uint8_t chooseRandomIncrementAvoidance(void)
   return false;
 }
 
-// Addition for drone attitude so yaw/pitch/roll
-// // Event handle for DRONE_ATTITUDE
-// static abi_event drone_att_ev;
-
-// // Callback for DRONE_ATTITUDE
-// static void drone_attitude_cb(uint8_t sender_id,
-//                               float roll, float pitch, float yaw)
-// {
-//   // You can store them in global variables or just print them
-//   printf("[orange_avoider] DroneAtt: roll=%.2f rad, pitch=%.2f rad, yaw=%.2f rad\n",
-//          roll, pitch, yaw);
-// }
-
-// void orange_avoider_init(void)
-// {
-//   // existing code for color avoidance...
-//   // Bind your color detection callback
-//   AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID,
-//                              &color_detection_ev,
-//                              color_detection_cb);
-
-//   // Also bind DRONE_ATTITUDE
-//   AbiBindMsgDRONE_ATTITUDE(DRONE_ATTITUDE_ID, &drone_att_ev, drone_attitude_cb);
-//   ...
-// }
