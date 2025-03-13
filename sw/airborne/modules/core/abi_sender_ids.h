@@ -646,3 +646,9 @@
 
 
 #endif /* ABI_SENDER_IDS_H */
+
+
+// Addition for state publishing
+#ifndef DRONE_ATTITUDE_ID
+#define DRONE_ATTITUDE_ID 42
+#endif

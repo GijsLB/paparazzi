@@ -31,6 +31,12 @@
 #include "modules/core/abi.h"
 #include "std.h"
 
+
+// // Addition
+// #include "modules/core/abi_sender_ids.h"         // DRONE_ATTITUDE_ID
+// #include "state.h"                             // <--- ADDED: for stateGetNedToBodyEulers_f()
+// #include "paparazzi.h"                         // for AC_ID, etc.
+// // 
 #include <stdio.h>
 #include <stdbool.h>
 #include <math.h>
@@ -273,4 +279,17 @@ void color_object_detector_periodic(void)
         0, 0, local_filters[1].color_count, 1);
     local_filters[1].updated = false;
   }
+  // 2) Now also publish the DRONE_ATTITUDE message <--- ADDED
+  //    Let’s read the Euler angles (in radians) from the state
+  const struct FloatEulers *eul = stateGetNedToBodyEulers_f();
+  float roll  = eul->phi;
+  float pitch = eul->theta;
+  float yaw   = eul->psi;
+
+  // Actually send them. The auto-generated function will be AbiSendMsgDRONE_ATTITUDE(...)
+  AbiSendMsgDRONE_ATTITUDE(DRONE_ATTITUDE_ID,
+                           roll, pitch, yaw);
+  // done
+  // With this change everytime color_object_detector_periodic() runs,
+  // it will also send out your new DRONE_ATTITUDE message containing roll/yaw/pitch in rad
 }
