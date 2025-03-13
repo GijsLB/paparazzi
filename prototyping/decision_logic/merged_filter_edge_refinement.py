@@ -14,10 +14,11 @@ THRESH_OBSTACLE = 0.4  # Whiteness threshold to determine obstacles
 THRESH_EDGE = 1.0  # Edge detection threshold
 X_WHITE_TILES = 1      # Min number of white tiles required to reset obstacle classification
 Y_BLACK_TILES = 8      # Number of consecutive black tiles that forces everything above to stay black
+CANNY_LOW = 140
+CANNY_HIGH = 150
 
 # Define image paths
-
-image_name = "1248048448.jpg"
+image_name = "1284881463.jpg"
 
 input_dir = os.path.expanduser("~/paparazzi/prototyping/collected_datasets/Test3_7maart_tapijt")
 image_path = os.path.join(input_dir, image_name)
@@ -52,7 +53,7 @@ kernel = np.ones((5,5), np.uint8)
 image_closed = cv2.morphologyEx(green_filtered, cv2.MORPH_CLOSE, kernel)
 
 # Edge detection (not critical to the bottom-up logic)
-edges = cv2.Canny(image, 100, 150)
+edges = cv2.Canny(image, CANNY_LOW, CANNY_HIGH)
 edge_density = cv2.blur(edges, (5,5))
 
 # Define segmentation parameters
