@@ -49,7 +49,7 @@
 
 // to get the definition of front_camera / bottom_camera
 #include BOARD_CONFIG
-#define MAX_COUNT 11  // of bovenin het bestand
+#define MAX_COUNT 20  // of bovenin het bestand
 // whether to show the flow and corners:
 #define OPTICFLOW_SHOW_CORNERS 0
 
@@ -619,9 +619,9 @@ bool calc_fast9_lukas_kanade(struct opticflow_t *opticflow, struct image_t *img,
               i, vectors[i].pos.x, vectors[i].pos.y, vectors[i].flow_x, vectors[i].flow_y);
 }
 
-  int32_t fx[10], fy[10];
+  int32_t fx[20], fy[20];
 
-  for (int i=0; i<10; i++) {
+  for (int i=0; i<20; i++) {
     if (i<result->tracked_cnt) {
       fx[i] = vectors[i].flow_x;
       fy[i] = vectors[i].flow_y;
@@ -631,7 +631,7 @@ bool calc_fast9_lukas_kanade(struct opticflow_t *opticflow, struct image_t *img,
     }
   }
   uint8_t count = result->tracked_cnt;
-  if (count > 10) count=10;
+  if (count > 20) count=20;
 
   // AbiSendMsgOPTICAL_FLOW_VECTORS(OPTICAL_FLOW_CALCULATOR_ID, count,
   //   fx[0],fy[0], fx[1],fy[1], fx[2],fy[2], fx[3],fy[3], fx[4],fy[4],

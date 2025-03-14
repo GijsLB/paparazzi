@@ -32,14 +32,16 @@
  };
  
  // ======== Parameters ========
- static float OF_THRESHOLD = 2.f;
- static float FORWARD_DIST = 3.0f;
+ static float OF_THRESHOLD = 10.f;
+ static float FORWARD_DIST = 1.0f;
  static float TURN_ANGLE   = 45.0f;
  float obstacle_threshold = 0;
  
  // ======== Global vars ========
  static enum of_state_t of_state = OF_STATE_WAIT_FORWARD;
  static int32_t motion_x = 0;
+ static int32_t motion_y = 0;
+ static double motion_magnitude = 0.0; // Maak het globaal
  static int32_t opticflow_vx = 0;
  static int32_t opticflow_vy = 0;
  static float last_state_start = 0.f;
@@ -114,12 +116,12 @@
              break;
  
          case OF_STATE_CHECK_OBSTACLE:
-             OF_PRINT("Checking obstacle: motion_x=%d threshold=%.1f\n", motion_x, OF_THRESHOLD);
-             if (motion_x < -OF_THRESHOLD) {
+            OF_PRINT("Checking obstacle: magnitude=%.2f threshold=%.1f\n", motion_magnitude, OF_THRESHOLD);
+             if (motion_magnitude < -OF_THRESHOLD) {
                  OF_PRINT("Obstacle on right => turn left by %.1f deg\n", TURN_ANGLE);
                  of_increase_heading(+TURN_ANGLE);
                  of_set_state(OF_STATE_ROTATING);
-             } else if (motion_x > OF_THRESHOLD) {
+             } else if (motion_magnitude > OF_THRESHOLD) {
                  OF_PRINT("Obstacle on left => turn right by %.1f deg\n", TURN_ANGLE);
                  of_increase_heading(-TURN_ANGLE);
                  of_set_state(OF_STATE_ROTATING);
@@ -150,41 +152,6 @@
      }
  }
  
- /**
-  * Callback: ontvangen van OPTICAL_FLOW data
-  */
-
- 
- /**
-  * Callback: ontvangen van OPTICAL_FLOW_VECTORS data
-  */
-// static void of_vector_callback(uint8_t sender_id,
-//     uint8_t count,
-//     int32_t flow_x0, int32_t flow_y0,
-//     int32_t flow_x1, int32_t flow_y1,
-//     int32_t flow_x2, int32_t flow_y2,
-//     int32_t flow_x3, int32_t flow_y3,
-//     int32_t flow_x4, int32_t flow_y4,
-//     int32_t flow_x5, int32_t flow_y5,
-//     int32_t flow_x6, int32_t flow_y6,
-//     int32_t flow_x7, int32_t flow_y7,
-//     int32_t flow_x8, int32_t flow_y8,
-//     int32_t flow_x9, int32_t flow_y9)
-// {
-//     fprintf(stderr, "[OF] cb: got count=%d from sender_id=%d\n", count, sender_id);
-
-// // Bijv. in array zetten:
-//     int32_t fx[10], fy[10];
-//     fx[0] = flow_x0; fy[0] = flow_y0;
-//     fx[1] = flow_x1; fy[1] = flow_y1;
-//     // enzovoort ...
-//     fx[9] = flow_x9; fy[9] = flow_y9;
-
-//     for (int i=0; i<count && i<10; i++) {
-//         fprintf(stderr, "   i=%d => flow_x=%ld flow_y=%ld\n",
-//             i, (long)fx[i], (long)fy[i]);
-//     }
-// }
 
 static void of_vector_callback(uint8_t sender_id,
     uint8_t count,
@@ -193,12 +160,15 @@ static void of_vector_callback(uint8_t sender_id,
 fprintf(stderr, "[OF] cb: got count=%d from sender_id=%d\n", count, sender_id);
 
 int64_t sum_fx = 0;  // 64-bit om overflows te vermijden als je count > ~32k
+int64_t sum_fy = 0; 
+// double motion_magnitude = 0.0; // Declareer motion_magnitude correct
 // Loop over de x,y paren
 for (int i = 0; i < count; i++) {
 // x staat in flow_xy[2*i], y in flow_xy[2*i + 1]
 int32_t fx = flow_xy[2*i];
 int32_t fy = flow_xy[2*i + 1];
 sum_fx += fx;
+sum_fy += fy;
 
 fprintf(stderr, "   i=%d => flow_x=%ld flow_y=%ld\n",
 i, (long)fx, (long)fy);
@@ -206,12 +176,17 @@ i, (long)fx, (long)fy);
 
 if (count > 0) {
     motion_x = sum_fx / count;
+    motion_y = sum_fy / count;
+    motion_magnitude = sqrt((double)(motion_x * motion_x) + (double)(motion_y * motion_y)); // Euclidische norm
   } else {
     motion_x = 0;
+    motion_y = 0;
+    motion_magnitude = 0;
   }
 
   // Debug
-  fprintf(stderr, "[OF] average fx = %ld\n", (long)motion_x);
+  fprintf(stderr, "[OF] average fx = %ld, fy = %ld, magnitude = %.2f\n", 
+    (long)motion_x, (long)motion_y, motion_magnitude);
 
 }
 
