@@ -645,4 +645,10 @@
 #endif
 
 
+#ifndef OPTICAL_FLOW_CALCULATOR_ID
+#define OPTICAL_FLOW_CALCULATOR_ID  44
+#endif
+
+
+
 #endif /* ABI_SENDER_IDS_H */
