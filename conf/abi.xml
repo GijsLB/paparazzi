@@ -261,6 +261,57 @@
       <field name="data" type="uint8_t*">pointer to the data of the matrix</field>
     </message>
 
+
+
+
+    <message name="OPTICAL_FLOW_VECTORS" id="50">
+      <!--
+        'count' = aantal vectoren
+        'flow_xy' = array van (x,y) paren in int32_t
+        Bijv. flow_xy[0]   = flow_x0
+            flow_xy[1]   = flow_y0
+            flow_xy[2]   = flow_x1
+            flow_xy[3]   = flow_y1
+            ...
+      -->
+      <field name="count"   type="uint8_t"/>
+      <field name="flow_xy" type="int32_t *"/>
+    </message>
+
+
+    <!-- <message name="OPTICAL_FLOW_VECTORS" id="50">
+      <field name="count"   type="uint8_t"/>
+      <field name="flow_x0" type="int32_t"/>
+      <field name="flow_y0" type="int32_t"/>
+      <field name="flow_x1" type="int32_t"/>
+      <field name="flow_y1" type="int32_t"/>
+      <field name="flow_x2" type="int32_t"/>
+      <field name="flow_y2" type="int32_t"/>
+      <field name="flow_x3" type="int32_t"/>
+      <field name="flow_y3" type="int32_t"/>
+      <field name="flow_x4" type="int32_t"/>
+      <field name="flow_y4" type="int32_t"/>
+      <field name="flow_x5" type="int32_t"/>
+      <field name="flow_y5" type="int32_t"/>
+      <field name="flow_x6" type="int32_t"/>
+      <field name="flow_y6" type="int32_t"/>
+      <field name="flow_x7" type="int32_t"/>
+      <field name="flow_y7" type="int32_t"/>
+      <field name="flow_x8" type="int32_t"/>
+      <field name="flow_y8" type="int32_t"/>
+      <field name="flow_x9" type="int32_t"/>
+      <field name="flow_y9" type="int32_t"/>
+
+
+    </message> -->
+
+
+  
+
+ 
+
+
+
   </msg_class>
 
 </protocol>
