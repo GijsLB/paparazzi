@@ -100,58 +100,80 @@
       <call_once fun="NavSetWaypointHere(WP_CLIMB)"/>
       <stay climb="nav.climb_vspeed" vmode="climb" wp="CLIMB"/>
     </block>
+
+    <!-- Standby block: changed to vmode="throttle" so we do NOT track waypoint's altitude -->
     <block key="s" name="Standby" strip_button="Standby" strip_icon="home.png">
       <call_once fun="NavSetWaypointHere(WP_STDBY)"/>
-      <stay wp="STDBY"/>
+      <stay wp="STDBY"
+            vmode="throttle"
+            throttle="0.3"/>  <!-- Or whatever power you need horizontally -->
     </block>
+
     <!-- <block key="g" name="START" strip_button="Go" strip_icon="lookfore.png">
       <call_once fun="NavSetWaypointHere(WP_GOAL)"/>
       <stay wp="GOAL"/>
     </block> -->
+    <!-- START block: we do a single 'go' to GOAL with vmode="throttle" so it won't override altitude. -->
     <block key="g" name="START" strip_button="Go" strip_icon="lookfore.png">
-      <!-- place the drone's GOAL waypoint on top of itself, just once -->
       <call_once fun="NavSetWaypointHere(WP_GOAL)"/>
-      <!-- Do a one-time goto of GOAL for horizontal position, but do NOT stay at its altitude. -->
-      <call_once fun="NavGotoWaypoint(WP_GOAL)"/>
-      <!-- Now just remain in this block forever, leaving altitude to your module. -->
+      <!-- Replace the 'NavGotoWaypoint(WP_GOAL)' call with a flight plan go command: -->
+      <go wp="GOAL"
+          vmode="throttle"
+          throttle="0.3"
+          pitch = "10"/>
+      <!-- remain in this block, letting your module handle altitude -->
       <while cond="TRUE"/>
     </block>
+
+    <!-- STOP block: again no altitude override, so let's do vmode="throttle" -->
     <block name="STOP">
       <call_once fun="NavSetWaypointHere(WP_STDBY)"/>
-      <stay wp="STDBY"/>
+      <stay wp="STDBY"
+            vmode="throttle"
+            throttle="0.3"/>
     </block>
+
+    <!-- RETREAT block, same logic if you want to keep altitude from the module -->
     <block name="RETREAT">
       <exception cond="block_time @GT 2.0" deroute="STOP"/>
       <call_once fun="NavSetWaypointHere(WP_RETREAT)"/>
-      <stay wp="RETREAT"/>
+      <stay wp="RETREAT"
+            vmode="throttle" throttle="0.3"/>
     </block>
+
     <block key="e" name="Emergency Landing">
       <exception cond="!nav_is_in_flight()" deroute="KILL"/>
       <exception cond="0.10 @GT GetPosAlt()" deroute="KILL"/>
       <call_once fun="NavSetWaypointHere(WP_TD)"/>
       <call_once fun="NavStartDetectGround()"/>
+      <!-- still do vmode="climb" to descend quickly -->
       <stay climb="-1.25" vmode="climb" wp="TD"/>
     </block>
+
     <block key="i" name="Immediate Landing" strip_button="Immediate Landing" strip_icon="land-right.png">
       <call_once fun="NavSetWaypointHere(WP_TD)"/>
       <deroute block="Land"/>
     </block>
+
     <block key="l" name="Land">
       <exception cond="0.55 @GEQ GetPosAlt()" deroute="Flare"/>
       <exception cond="block_time @GT 5" deroute="Flare"/>
-      <go wp="TD"/> 
+      <go wp="TD"/>
       <deroute block="Flare"/>
     </block>
+
     <block name="Flare">
       <exception cond="!nav_is_in_flight()" deroute="Landed"/>
       <exception cond="0.10 @GT GetPosAlt()" deroute="Landed"/>
       <call_once fun="NavStartDetectGround()"/>
       <stay climb="nav.descend_vspeed" vmode="climb" wp="TD"/>
     </block>
+
     <block name="Landed">
       <call_once fun="NavKillThrottle()"/>
       <attitude pitch="0" roll="0" throttle="0" until="FALSE" vmode="throttle"/>
     </block>
+
     <block name="KILL">
       <call_once fun="autopilot_set_mode(AP_MODE_KILL)"/>
       <call_once fun="NavKillThrottle()"/>
