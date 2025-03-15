@@ -37,6 +37,12 @@
  static float TURN_ANGLE   = 45.0f;
  float obstacle_threshold = 0;
  
+ // Altitude oscillation parameters
+ static float BASE_ALTITUDE = 1.5f;      // Base flight altitude in meters
+ static float ALT_AMPLITUDE = 0.5f;      // Amplitude of altitude oscillation in meters  
+ static float ALT_FREQUENCY = 0.2f;      // Frequency of oscillation in Hz (5 second period)
+ static float last_alt_update = 0.f;
+ 
  // ======== Global vars ========
  static enum of_state_t of_state = OF_STATE_WAIT_FORWARD;
  static int32_t motion_x = 0;
@@ -90,11 +96,19 @@
                                     of_vector_callback);
      
      OF_PRINT("OpticalFlow ABI bound, waiting for messages...\n");
- 
+
      srand(time(NULL));
      of_set_state(OF_STATE_WAIT_FORWARD);
  }
  
+ /**
+  * Calculate desired altitude based on sinusoidal oscillation
+  */
+ static float calc_desired_altitude(float now) {
+     // Calculate sine wave: base + amplitude * sin(2π * freq * time)
+     return BASE_ALTITUDE + ALT_AMPLITUDE * sinf(2.0f * M_PI * ALT_FREQUENCY * now);
+ }
+
  /**
   * opticalflow_avoider_periodic
   */
@@ -102,12 +116,23 @@
      if (!autopilot_in_flight() || autopilot_get_mode() != AP_MODE_NAV) {
          return;
      }
- 
+
      float now_s = get_sys_time_float();
      float dt_s  = now_s - last_state_start;
      float psi_deg = DegOfRad(stateGetNedToBodyEulers_f()->psi);
      float nav_deg = DegOfRad(nav.heading);
- 
+
+    // Update altitude setpoint every 0.1s
+    if (now_s - last_alt_update > 0.1f) {
+        float desired_alt = calc_desired_altitude(now_s);
+
+        // Instead of NavSetAltitude, use the standard altitude macro:
+        NavVerticalAltitudeMode(desired_alt, 0.0f);   // <-- CHANGED
+
+        last_alt_update = now_s;
+    }
+
+
      switch (of_state) {
          case OF_STATE_WAIT_FORWARD:
              if (dt_s > 2.0f) {
@@ -166,7 +191,7 @@ int64_t sum_fy = 0;
 for (int i = 0; i < count; i++) {
 // x staat in flow_xy[2*i], y in flow_xy[2*i + 1]
 int32_t fx = flow_xy[2*i];
-int32_t fy = flow_xy[2*i + 1];
+int32_t fy = flow_xy[2*i + 1];  
 sum_fx += fx;
 sum_fy += fy;
 
@@ -242,4 +267,3 @@ if (count > 0) {
      waypoint_move_xy_i(wp, coor->x, coor->y);
      return 0;
  }
- 

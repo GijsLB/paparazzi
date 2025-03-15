@@ -104,9 +104,17 @@
       <call_once fun="NavSetWaypointHere(WP_STDBY)"/>
       <stay wp="STDBY"/>
     </block>
-    <block key="g" name="START" strip_button="Go" strip_icon="lookfore.png">
+    <!-- <block key="g" name="START" strip_button="Go" strip_icon="lookfore.png">
       <call_once fun="NavSetWaypointHere(WP_GOAL)"/>
       <stay wp="GOAL"/>
+    </block> -->
+    <block key="g" name="START" strip_button="Go" strip_icon="lookfore.png">
+      <!-- place the drone's GOAL waypoint on top of itself, just once -->
+      <call_once fun="NavSetWaypointHere(WP_GOAL)"/>
+      <!-- Do a one-time goto of GOAL for horizontal position, but do NOT stay at its altitude. -->
+      <call_once fun="NavGotoWaypoint(WP_GOAL)"/>
+      <!-- Now just remain in this block forever, leaving altitude to your module. -->
+      <while cond="TRUE"/>
     </block>
     <block name="STOP">
       <call_once fun="NavSetWaypointHere(WP_STDBY)"/>

@@ -612,6 +612,9 @@ bool calc_fast9_lukas_kanade(struct opticflow_t *opticflow, struct image_t *img,
                                        opticflow->window_size / 2, opticflow->subpixel_factor, opticflow->max_iterations,
                                        opticflow->threshold_vec, opticflow->max_track_corners, opticflow->pyramid_level, keep_bad_points);
 
+
+  ////////////////////////////////////////////////////////////
+  // Own edited code
   // Log alle flow vectoren om te zien of we meerdere waarden krijgen
   fprintf(stderr, "[OF DEBUG] Tracked vectors count: %d\n", result->tracked_cnt);
   for (int i = 0; i < result->tracked_cnt; i++) {
@@ -655,7 +658,7 @@ bool calc_fast9_lukas_kanade(struct opticflow_t *opticflow, struct image_t *img,
     flow_xy
   );
 
-
+///////////////////////////////////////////////////////////////////
 
 
 
