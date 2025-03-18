@@ -84,7 +84,8 @@ static void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
 static abi_event edge_count_ev;
 static void edge_count_cb(uint8_t __attribute__((unused)) sender_id, uint32_t edge_count)
 {
-  printf("[orange_avoider] Received edge count: %u\n", edge_count);
+  printf("[orange_avoider] Received carpet advice: %u\n", edge_count);
+  VERBOSE_PRINT("Carpet advice: %u\n", edge_count);
 }
 
 

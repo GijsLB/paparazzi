@@ -297,13 +297,15 @@ uint32_t get_edge_score(struct image_t *img)
     return 0;
   }
 
-  uint32_t edge_count = 0;      // Stores the number of detected edges
+  uint32_t edge_count_upper = 0;      // Edges in upper area
+  uint32_t edge_count_middle = 0;     // Edges in middle area
+  uint32_t edge_count_lower = 0;      // Edges in lower area
   uint8_t *buffer = img->buf;
   uint8_t width = img->w;
   uint8_t height = img->h;
   uint8_t row_stride = 2 * width;
+  uint8_t edge_threshold = 100;   // Threshold for when the algorithm counts an edge.
   // uint32_t edge_arr[height - 2][width - 2];   // Define the edge array 
-
 
   // printf("break1");
 
@@ -316,7 +318,7 @@ uint32_t get_edge_score(struct image_t *img)
                         {1, 2, 1}}; 
 
   // Loop through each pixel, skipping the first and last rows/columns
-  for (uint16_t y = 1; y < height - 1; y++) {
+  for (uint16_t y = height / 3; y < height - 1; y++) {
       for (uint16_t x = 1; x < width - 1; x++) {
         // Extract the surrounding 8 pixels (Y values)
         uint8_t P_TL  = buffer[(y - 1) * row_stride + 2 * (x - 1) + 1]; // Top-left
@@ -350,13 +352,27 @@ uint32_t get_edge_score(struct image_t *img)
 
 
         // Thresholding: If G is strong enough, count it as an edge
-        if (G > 100) {
-          edge_count++;
+        if (G > edge_threshold) {
+          // if (y < height / 3) {
+          //     edge_count_upper++;
+          if (y >= height / 3 && y < 2 * height / 3) {
+              edge_count_middle++;
+          } else if (y >= 2 * height / 3) {
+              edge_count_lower++;
+          }
         }
       }
     }
-    printf("EDGE_COUNT CV_DETECT!! %d\n", edge_count);
-    return edge_count;
+    
+    float_t ratio_param = 0.001;
+    float_t edge_ratio = (float_t) edge_count_lower / ((float_t) edge_count_middle + ratio_param);
+    printf("YYEEEEE: EDGE RATIO: %f\n", edge_ratio);
+
+    if (edge_ratio >= 5.) {
+      return 1;   // It is just a carpet
+    } else {
+      return 2;   // It really is an obstacle
+    }
 } 
 
 void color_object_detector_periodic(void)
