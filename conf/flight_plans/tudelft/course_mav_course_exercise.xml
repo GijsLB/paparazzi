@@ -8,7 +8,17 @@
     #include "modules/radio_control/radio_control.h"
     #include "modules/ahrs/ahrs.h"
     #define NPS_GAZEBO_WORLD "cyberzoo_orange_poles.world"
-</header>
+
+    <!-- Gebruik de juiste header voor waypoints -->
+    #include "modules/nav/waypoints.h"
+    <!-- Voeg de conversie header toe voor fixed-point conversie -->
+    #include "math/pprz_algebra_int.h"
+
+    inline uint8_t SetWPAlt(uint8_t wp_id, float alt_m) {
+      waypoint_set_alt_i(wp_id, POS_BFP_OF_REAL(alt_m));
+      return 0;
+    }
+  </header>
   <waypoints>
     <waypoint lat="51.990631" lon="4.376796" name="HOME"/>
     <waypoint name="CLIMB" x="1.9" y="1.0"/>
@@ -107,6 +117,7 @@
     <block key="g" name="START" strip_button="Go" strip_icon="lookfore.png">
       <call_once fun="NavSetWaypointHere(WP_GOAL)"/>
       <stay wp="GOAL"/>
+      <deroute block="Oscillation"/>
     </block>
     <block name="STOP">
       <call_once fun="NavSetWaypointHere(WP_STDBY)"/>
@@ -149,5 +160,22 @@
       <call_once fun="NavKillThrottle()"/>
       <attitude pitch="0" roll="0" throttle="0" until="FALSE" vmode="throttle"/>
     </block>
+
+    <block name="Oscillation">
+      <call fun="SetWPAlt(WP_GOAL, 2.0)"/>
+      <!-- Blijf hier tot 3s voorbij is -->
+      <stay wp="GOAL" vmode="alt" until="(stage_time @GT 1)"/>
+
+      <!-- Daarna WP_GOAL op 0.2 m -->
+      <call fun="SetWPAlt(WP_GOAL, 1.0)"/>
+      <!-- Blijf hier tot 3s voorbij is -->
+      <stay wp="GOAL" vmode="alt" until="(stage_time @GT 1)"/>
+
+      <!-- Oneindige lus -->
+      <deroute block="Oscillation"/>
+    </block>
+
+
+
   </blocks>
 </flight_plan>
