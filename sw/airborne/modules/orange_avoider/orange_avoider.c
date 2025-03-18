@@ -24,6 +24,7 @@
 #include "modules/core/abi.h"
 #include <time.h>
 #include <stdio.h>
+#include <math.h>
 
 #define NAV_C // needed to get the nav functions like Inside...
 #include "generated/flight_plan.h"
@@ -57,6 +58,8 @@ float oa_color_count_frac = 0.18f;
 enum navigation_state_t navigation_state = SEARCH_FOR_SAFE_HEADING;
 int32_t color_count = 0;                // orange color count from color filter for obstacle detection
 int16_t obstacle_free_confidence = 0;   // a measure of how certain we are that the way ahead is safe.
+
+// waarschijnlijk de heading_increment hier onder weg halen
 float heading_increment = 5.f;          // heading angle increment [deg]
 float maxDistance = 2.25;               // max waypoint displacement [m]
 
@@ -81,6 +84,25 @@ static void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
   color_count = quality;
 }
 
+static abi_ground_detection_ev;
+static void ground_filter_cb(uint8_t __attribute__((unused)) sender_id, int16_t *ground_array, uint16_t array_size)
+{
+  // Process ground filter data here
+  int best_heading_index = 0;
+  int max_value = ground_array[0];
+
+  for (uint16_t i = 1; i < array_size; i++) {
+    if (ground_array[i] > max_value) {
+      max_value = ground_array[i];
+      best_heading_index = i;
+    }
+  }
+
+  // Convert best index to steering angle (example, assuming evenly spaced headings)
+  float angle_per_index = 180.0f / (float)array_size;
+  heading_increment = -90.0f + (best_heading_index * angle_per_index); // Assuming center is 0 degrees
+}
+
 /*
  * Initialisation function, setting the colour filter, random seed and heading_increment
  */
@@ -92,6 +114,10 @@ void orange_avoider_init(void)
 
   // bind our colorfilter callbacks to receive the color filter outputs
   AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &color_detection_ev, color_detection_cb);
+
+
+  // bind the groundfilter callbacks to receive the ground filter outputs
+  AbiBindMsgGROUND_DETECTION(GROUND_FILTER_ID, &ground_filter_ev, ground_filter_cb);
 }
 
 /*
@@ -105,11 +131,13 @@ void orange_avoider_periodic(void)
   }
 
   // compute current color thresholds
-  int32_t color_count_threshold = oa_color_count_frac * front_camera.output_size.w * front_camera.output_size.h;
+  // int32_t color_count_threshold = oa_color_count_frac * front_camera.output_size.w * front_camera.output_size.h;
 
-  VERBOSE_PRINT("Color_count: %d  threshold: %d state: %d \n", color_count, color_count_threshold, navigation_state);
+  //VERBOSE_PRINT("Color_count: %d  threshold: %d state: %d \n", color_count, color_count_threshold, navigation_state);
+  VERBOSE_PRINT("Front_score: %d, best_heading: %d", 1darray[center])
 
   // update our safe confidence using color threshold
+  /*
   if(color_count < color_count_threshold){
     obstacle_free_confidence++;
   } else {
@@ -118,7 +146,9 @@ void orange_avoider_periodic(void)
 
   // bound obstacle_free_confidence
   Bound(obstacle_free_confidence, 0, max_trajectory_confidence);
+  */
 
+  // checken of die obstacle_free_confidence nog nodig is
   float moveDistance = fminf(maxDistance, 0.2f * obstacle_free_confidence);
 
   switch (navigation_state){
@@ -151,6 +181,7 @@ void orange_avoider_periodic(void)
       increase_nav_heading(heading_increment);
 
       // make sure we have a couple of good readings before declaring the way safe
+      // dit stukje dus ook aanpassen
       if (obstacle_free_confidence >= 2){
         navigation_state = SAFE;
       }
@@ -235,6 +266,8 @@ uint8_t moveWaypoint(uint8_t waypoint, struct EnuCoor_i *new_coor)
 /*
  * Sets the variable 'heading_increment' randomly positive/negative
  */
+
+ /*
 uint8_t chooseRandomIncrementAvoidance(void)
 {
   // Randomly choose CW or CCW avoiding direction
@@ -247,4 +280,4 @@ uint8_t chooseRandomIncrementAvoidance(void)
   }
   return false;
 }
-
+*/
