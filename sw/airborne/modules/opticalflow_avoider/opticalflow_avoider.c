@@ -32,9 +32,9 @@
  };
  
  // ======== Parameters ========
- static float OF_THRESHOLD = 10.f;
+ static float OF_THRESHOLD = 15.f;
  static float FORWARD_DIST = 1.0f;
- static float TURN_ANGLE   = 45.0f;
+ static float TURN_ANGLE   = 90.0f;
  float obstacle_threshold = 0;
  
  // ======== Global vars ========
@@ -110,26 +110,38 @@
  
      switch (of_state) {
          case OF_STATE_WAIT_FORWARD:
-             if (dt_s > 2.0f) {
+             if (dt_s > 1.0f) {
                  of_set_state(OF_STATE_CHECK_OBSTACLE);
              }
              break;
  
          case OF_STATE_CHECK_OBSTACLE:
             OF_PRINT("Checking obstacle: magnitude=%.2f threshold=%.1f\n", motion_magnitude, OF_THRESHOLD);
-             if (motion_magnitude < -OF_THRESHOLD) {
-                 OF_PRINT("Obstacle on right => turn left by %.1f deg\n", TURN_ANGLE);
-                 of_increase_heading(+TURN_ANGLE);
-                 of_set_state(OF_STATE_ROTATING);
-             } else if (motion_magnitude > OF_THRESHOLD) {
-                 OF_PRINT("Obstacle on left => turn right by %.1f deg\n", TURN_ANGLE);
-                 of_increase_heading(-TURN_ANGLE);
-                 of_set_state(OF_STATE_ROTATING);
-             } else {
-                 OF_PRINT("No obstacle => move WP forward=%.1f m\n", FORWARD_DIST);
-                 of_move_waypoint_forward(WP_GOAL, FORWARD_DIST);
-                 of_set_state(OF_STATE_WAIT_FORWARD);
-             }
+            if (fabsf(motion_magnitude) > OF_THRESHOLD) {
+                OF_PRINT("Flow te hoog, draai 20 graden links\n");
+                of_increase_heading(+90.0f);
+                of_set_state(OF_STATE_ROTATING);
+            } else {
+                // Flow is onder drempel: ga rechtdoor
+                of_move_waypoint_forward(WP_GOAL, FORWARD_DIST);
+                of_set_state(OF_STATE_WAIT_FORWARD);
+            }
+            
+            
+            
+            //  if (motion_magnitude < -OF_THRESHOLD) {
+            //      OF_PRINT("Obstacle on right => turn left by %.1f deg\n", TURN_ANGLE);
+            //      of_increase_heading(+TURN_ANGLE);
+            //      of_set_state(OF_STATE_ROTATING);
+            //  } else if (motion_magnitude > OF_THRESHOLD) {
+            //      OF_PRINT("Obstacle on left => turn right by %.1f deg\n", TURN_ANGLE);
+            //      of_increase_heading(-TURN_ANGLE);
+            //      of_set_state(OF_STATE_ROTATING);
+            //  } else {
+            //      OF_PRINT("No obstacle => move WP forward=%.1f m\n", FORWARD_DIST);
+            //      of_move_waypoint_forward(WP_GOAL, FORWARD_DIST);
+            //      of_set_state(OF_STATE_WAIT_FORWARD);
+            //  }
              break;
  
          case OF_STATE_ROTATING: {
@@ -183,6 +195,15 @@ if (count > 0) {
     motion_y = 0;
     motion_magnitude = 0;
   }
+
+
+  if (motion_magnitude > 100.0) {
+    OF_PRINT("Flow magnitude too high (%.2f), discarding measurement\n", motion_magnitude);
+    motion_x = 0;
+    motion_y = 0;
+    motion_magnitude = 0;
+  }
+
 
   // Debug
   fprintf(stderr, "[OF] average fx = %ld, fy = %ld, magnitude = %.2f\n", 

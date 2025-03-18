@@ -164,13 +164,12 @@
     <block name="Oscillation">
       <call fun="SetWPAlt(WP_GOAL, 2.0)"/>
       <!-- Blijf hier tot 3s voorbij is -->
-      <stay wp="GOAL" vmode="alt" until="(stage_time @GT 1)"/>
+      <stay wp="GOAL" vmode="alt" until="(stage_time @GT 0.1)"/>
 
       <!-- Daarna WP_GOAL op 0.2 m -->
       <call fun="SetWPAlt(WP_GOAL, 1.0)"/>
       <!-- Blijf hier tot 3s voorbij is -->
-      <stay wp="GOAL" vmode="alt" until="(stage_time @GT 1)"/>
-
+      <stay wp="GOAL" vmode="alt" until="(stage_time @GT 0.1)"/>
       <!-- Oneindige lus -->
       <deroute block="Oscillation"/>
     </block>
