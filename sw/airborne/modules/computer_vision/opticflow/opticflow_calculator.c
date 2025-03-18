@@ -69,152 +69,152 @@ uint16_t n_agents[2] = {50, 50};
 
 //////////////////////////////
 
-// /**
-//  * @brief Safely set a pixel in the image to a color (grayscale).
-//  *        For color images, adapt accordingly.
-//  *
-//  * @param img       Pointer to the image_t structure.
-//  * @param x, y      Pixel coordinates in the image.
-//  * @param gray_val  Grayscale value (0-255).
-//  */
-// static inline void set_pixel_gray(struct image_t *img, int x, int y, uint8_t gray_val)
-// {
-//   if (x < 0 || x >= (int)img->w || y < 0 || y >= (int)img->h) {
-//     return; // out of bounds
-//   }
-//   // For a 1-byte/pixel grayscale image:
-//   int index = y * img->w + x;
-//   ((uint8_t *)img->buf)[index] = gray_val;
+/**
+ * @brief Safely set a pixel in the image to a color (grayscale).
+ *        For color images, adapt accordingly.
+ *
+ * @param img       Pointer to the image_t structure.
+ * @param x, y      Pixel coordinates in the image.
+ * @param gray_val  Grayscale value (0-255).
+ */
+static inline void set_pixel_gray(struct image_t *img, int x, int y, uint8_t gray_val)
+{
+  if (x < 0 || x >= (int)img->w || y < 0 || y >= (int)img->h) {
+    return; // out of bounds
+  }
+  // For a 1-byte/pixel grayscale image:
+  int index = y * img->w + x;
+  ((uint8_t *)img->buf)[index] = gray_val;
 
-// }
+}
 
-// /**
-//  * @brief Draw a line on a grayscale image using a simple Bresenham algorithm.
-//  *
-//  * @param img    Pointer to the image.
-//  * @param x0,y0  Start of the line.
-//  * @param x1,y1  End of the line.
-//  * @param color  Grayscale color (0-255).
-//  */
-// static void draw_line_gray(struct image_t *img,
-//                            int x0, int y0,
-//                            int x1, int y1,
-//                            uint8_t color)
-// {
-//   int dx = abs(x1 - x0);
-//   int sx = (x0 < x1) ? 1 : -1;
-//   int dy = -abs(y1 - y0);
-//   int sy = (y0 < y1) ? 1 : -1;
-//   int err = dx + dy;
+/**
+ * @brief Draw a line on a grayscale image using a simple Bresenham algorithm.
+ *
+ * @param img    Pointer to the image.
+ * @param x0,y0  Start of the line.
+ * @param x1,y1  End of the line.
+ * @param color  Grayscale color (0-255).
+ */
+static void draw_line_gray(struct image_t *img,
+                           int x0, int y0,
+                           int x1, int y1,
+                           uint8_t color)
+{
+  int dx = abs(x1 - x0);
+  int sx = (x0 < x1) ? 1 : -1;
+  int dy = -abs(y1 - y0);
+  int sy = (y0 < y1) ? 1 : -1;
+  int err = dx + dy;
 
-//   while (true) {
-//     set_pixel_gray(img, x0, y0, color);
-//     if (x0 == x1 && y0 == y1) {
-//       break;
-//     }
-//     int e2 = 2 * err;
-//     if (e2 >= dy) {
-//       err += dy;
-//       x0 += sx;
-//     }
-//     if (e2 <= dx) {
-//       err += dx;
-//       y0 += sy;
-//     }
-//   }
-// }
+  while (true) {
+    set_pixel_gray(img, x0, y0, color);
+    if (x0 == x1 && y0 == y1) {
+      break;
+    }
+    int e2 = 2 * err;
+    if (e2 >= dy) {
+      err += dy;
+      x0 += sx;
+    }
+    if (e2 <= dx) {
+      err += dx;
+      y0 += sy;
+    }
+  }
+}
 
-// /**
-//  * @brief Draw a small arrowhead at the line endpoint to indicate direction.
-//  *
-//  * @param img      Pointer to the image.
-//  * @param x_tip,y_tip  Coordinates of the arrow tip (line endpoint).
-//  * @param dx, dy   The flow vector (for orientation).
-//  * @param color    Grayscale color (0-255).
-//  */
-// static void draw_arrowhead_gray(struct image_t *img,
-//                                 int x_tip, int y_tip,
-//                                 float dx, float dy,
-//                                 uint8_t color)
-// {
-//   const float arrow_size = 4.0f;
-//   float len = sqrtf(dx * dx + dy * dy) + 1e-5f;
-//   float nx = dx / len; // unit vector x
-//   float ny = dy / len; // unit vector y
+/**
+ * @brief Draw a small arrowhead at the line endpoint to indicate direction.
+ *
+ * @param img      Pointer to the image.
+ * @param x_tip,y_tip  Coordinates of the arrow tip (line endpoint).
+ * @param dx, dy   The flow vector (for orientation).
+ * @param color    Grayscale color (0-255).
+ */
+static void draw_arrowhead_gray(struct image_t *img,
+                                int x_tip, int y_tip,
+                                float dx, float dy,
+                                uint8_t color)
+{
+  const float arrow_size = 4.0f;
+  float len = sqrtf(dx * dx + dy * dy) + 1e-5f;
+  float nx = dx / len; // unit vector x
+  float ny = dy / len; // unit vector y
 
-//   // perpendicular to (nx, ny) is (-ny, nx)
-//   float px = -ny;
-//   float py =  nx;
+  // perpendicular to (nx, ny) is (-ny, nx)
+  float px = -ny;
+  float py =  nx;
 
-//   // compute two 'wing' points
-//   int xw1 = (int)(x_tip + arrow_size * px);
-//   int yw1 = (int)(y_tip + arrow_size * py);
-//   int xw2 = (int)(x_tip - arrow_size * px);
-//   int yw2 = (int)(y_tip - arrow_size * py);
+  // compute two 'wing' points
+  int xw1 = (int)(x_tip + arrow_size * px);
+  int yw1 = (int)(y_tip + arrow_size * py);
+  int xw2 = (int)(x_tip - arrow_size * px);
+  int yw2 = (int)(y_tip - arrow_size * py);
 
-//   draw_line_gray(img, x_tip, y_tip, xw1, yw1, color);
-//   draw_line_gray(img, x_tip, y_tip, xw2, yw2, color);
-// }
+  draw_line_gray(img, x_tip, y_tip, xw1, yw1, color);
+  draw_line_gray(img, x_tip, y_tip, xw2, yw2, color);
+}
 
-// /**
-//  * @brief Draw each optical flow vector on the given grayscale image as an arrow.
-//  *
-//  * @param img           Pointer to the image where vectors will be drawn.
-//  * @param flow_vectors  Array of flow_t elements (pos.x, pos.y, flow_x, flow_y).
-//  * @param n_vectors     Number of flow vectors in the array.
-//  * @param subpix_factor Subpixel scaling factor from your flow computation.
-//  * @param gray_color    Grayscale color for the vectors (0-255).
-//  */
-// static void draw_optical_flow_vectors(struct image_t      *img,
-//                                       const struct flow_t *flow_vectors,
-//                                       int                  n_vectors,
-//                                       int                  subpix_factor,
-//                                       uint8_t             gray_color)
-// {
-//   for (int i = 0; i < n_vectors; i++) {
-//     // old (feature) position in subpixel coords
-//     int x0 = flow_vectors[i].pos.x;
-//     int y0 = flow_vectors[i].pos.y;
+/**
+ * @brief Draw each optical flow vector on the given grayscale image as an arrow.
+ *
+ * @param img           Pointer to the image where vectors will be drawn.
+ * @param flow_vectors  Array of flow_t elements (pos.x, pos.y, flow_x, flow_y).
+ * @param n_vectors     Number of flow vectors in the array.
+ * @param subpix_factor Subpixel scaling factor from your flow computation.
+ * @param gray_color    Grayscale color for the vectors (0-255).
+ */
+static void draw_optical_flow_vectors(struct image_t      *img,
+                                      const struct flow_t *flow_vectors,
+                                      int                  n_vectors,
+                                      int                  subpix_factor,
+                                      uint8_t             gray_color)
+{
+  for (int i = 0; i < n_vectors; i++) {
+    // old (feature) position in subpixel coords
+    int x0 = flow_vectors[i].pos.x;
+    int y0 = flow_vectors[i].pos.y;
 
-//     // flow is also in subpixel units => scale it down
-//     float fx = (float)flow_vectors[i].flow_x / (float)subpix_factor;
-//     float fy = (float)flow_vectors[i].flow_y / (float)subpix_factor;
+    // flow is also in subpixel units => scale it down
+    float fx = (float)flow_vectors[i].flow_x / (float)subpix_factor;
+    float fy = (float)flow_vectors[i].flow_y / (float)subpix_factor;
 
-//     // new position
-//     float x1f = (float)x0 + fx;
-//     float y1f = (float)y0 + fy;
-//     int x1 = (int)(x1f + 0.5f);
-//     int y1 = (int)(y1f + 0.5f);
+    // new position
+    float x1f = (float)x0 + fx;
+    float y1f = (float)y0 + fy;
+    int x1 = (int)(x1f + 0.5f);
+    int y1 = (int)(y1f + 0.5f);
 
-//     // draw line from old to new
-//     draw_line_gray(img, x0, y0, x1, y1, gray_color);
+    // draw line from old to new
+    draw_line_gray(img, x0, y0, x1, y1, gray_color);
 
-//     // arrowhead
-//     draw_arrowhead_gray(img, x1, y1, fx, fy, gray_color);
-//   }
-// }
+    // arrowhead
+    draw_arrowhead_gray(img, x1, y1, fx, fy, gray_color);
+  }
+}
 
 
-// /**
-//  * @brief Save the given image to a file in PGM format with a timestamped filename.
-//  *
-//  * @param img Pointer to the image_t structure to be saved.
-//  */
-// void save_opticflow_image(struct image_t *img) {
-//   char filename[256];
-//   time_t now = time(NULL);
-//   struct tm *tm_info = localtime(&now);
-//   // Build filename in /tmp folder with date and time
-//   strftime(filename, sizeof(filename), "/tmp/opticflow_%Y%m%d_%H%M%S.pgm", tm_info);
+/**
+ * @brief Save the given image to a file in PGM format with a timestamped filename.
+ *
+ * @param img Pointer to the image_t structure to be saved.
+ */
+void save_opticflow_image(struct image_t *img) {
+  char filename[256];
+  time_t now = time(NULL);
+  struct tm *tm_info = localtime(&now);
+  // Build filename in /tmp folder with date and time
+  strftime(filename, sizeof(filename), "/tmp/opticflow_%Y%m%d_%H%M%S.pgm", tm_info);
   
-//   // Call your image-saving function.
-//   // Here we assume a function image_save() exists that takes (image, filename)
-//   if (image_save(img, filename) != 0) {
-//     fprintf(stderr, "Error saving flow image to %s\n", filename);
-//   } else {
-//     fprintf(stderr, "Flow image saved to %s\n", filename);
-//   }
-// }
+  // // Call your image-saving function.
+  // // Here we assume a function image_save() exists that takes (image, filename)
+  // if (image_save(img, filename) != 0) {
+  //   fprintf(stderr, "Error saving flow image to %s\n", filename);
+  // } else {
+  //   fprintf(stderr, "Flow image saved to %s\n", filename);
+  // }
+}
 
 //////////////////////////////
 
@@ -518,7 +518,7 @@ PRINT_CONFIG_VAR(OPTICFLOW_TRACK_BACK_CAMERA2)
 // Whether to draw the flow on the image:  SETTING AAN
 // False by default, since it changes the image and costs time.
 #ifndef OPTICFLOW_SHOW_FLOW
-#define OPTICFLOW_SHOW_FLOW TRUE
+#define OPTICFLOW_SHOW_FLOW FALSE
 #endif
 
 #ifndef OPTICFLOW_SHOW_FLOW_CAMERA2
@@ -764,15 +764,15 @@ bool calc_fast9_lukas_kanade(struct opticflow_t *opticflow, struct image_t *img,
                                        opticflow->window_size / 2, opticflow->subpixel_factor, opticflow->max_iterations,
                                        opticflow->threshold_vec, opticflow->max_track_corners, opticflow->pyramid_level, keep_bad_points);
 
-  // if (opticflow->show_flow) {
-  //   /* Draw the flow vectors on the grayscale image.
-  //      We choose 255 (white) as the drawing color. */
-  //   draw_optical_flow_vectors(&opticflow->img_gray, vectors, result->tracked_cnt,
-  //                             opticflow->subpixel_factor, 255);
+  if (opticflow->show_flow) {
+    /* Draw the flow vectors on the grayscale image.
+       We choose 255 (white) as the drawing color. */
+    draw_optical_flow_vectors(&opticflow->img_gray, vectors, result->tracked_cnt,
+                              opticflow->subpixel_factor, 255);
     
-  //   // Save the image with the drawn optical flow vectors to disk.
-  //   save_opticflow_image(&opticflow->img_gray);
-  // }
+    // Save the image with the drawn optical flow vectors to disk.
+    save_opticflow_image(&opticflow->img_gray);
+  }
                                       
 //   // Log alle flow vectoren om te zien of we meerdere waarden krijgen
 //   fprintf(stderr, "[OF DEBUG] Tracked vectors count: %d\n", result->tracked_cnt);
