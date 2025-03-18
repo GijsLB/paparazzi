@@ -78,7 +78,6 @@
 
 
 
-
     <!-- <module name="custom_avoider"/>    -->
     <!-- dit is toegevoegd  -->
     <module name="video_rtp_stream">
@@ -260,7 +259,7 @@
   <section name="GUIDANCE_H" prefix="GUIDANCE_H_">
     <!-- Good weather -->
     <define name="MAX_BANK" value="20" unit="deg"/>
-    <define name="REF_MAX_SPEED" value="0.5" unit="m/s"/>
+    <define name="REF_MAX_SPEED" value="1.5" unit="m/s"/>
     <!-- Bad weather -->
     <!-- define name="MAX_BANK" value="32" unit="deg"/ -->
     <define name="PGAIN" value="120"/>
@@ -269,8 +268,8 @@
   </section>
 
   <section name="NAVIGATION" prefix="NAV_">
-    <define name="CLIMB_VSPEED" value="1.0"/>
-    <define name="DESCEND_VSPEED" value="-0.75"/>
+    <define name="CLIMB_VSPEED" value="10.0"/>
+    <define name="DESCEND_VSPEED" value="10.0"/>
   </section>
 
   <section name="SIMULATOR" prefix="NPS_">
