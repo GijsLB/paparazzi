@@ -152,7 +152,7 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
   // Update global image, which is to be used by edge detection
   global_image.edge_count = get_edge_score(img);
   global_image.updated = true;
-  printf("GLOBAL IMAGE UPDATED!");
+  // printf("GLOBAL IMAGE UPDATED!");
   pthread_mutex_unlock(&mutex);
 
   return img;
@@ -290,7 +290,7 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
  */
 uint32_t get_edge_score(struct image_t *img)
 {
-  printf("get_edge_score is called\n");
+  // printf("get_edge_score is called\n");
   if (img != NULL) {
     printf("We got an image, lets go! Size w x h: %d x %d\n", img->w, img->h);
   } else {
@@ -366,7 +366,7 @@ uint32_t get_edge_score(struct image_t *img)
     
     float_t ratio_param = 0.001;
     float_t edge_ratio = (float_t) edge_count_lower / ((float_t) edge_count_middle + ratio_param);
-    printf("YYEEEEE: EDGE RATIO: %f\n", edge_ratio);
+    // printf("YYEEEEE: EDGE RATIO: %f\n", edge_ratio);
 
     if (edge_ratio >= 5.) {
       return 1;   // It is just a carpet
@@ -403,7 +403,7 @@ void color_object_detector_periodic(void)
 
   if (global_image.updated) {
     uint32_t edge_count = global_image.edge_count;
-    printf("SEND THE MESSAGE!");
+    // printf("SEND THE MESSAGE!");
     AbiSendMsgEDGE_COUNT(EDGE_COUNT_ID, edge_count);
     global_image.updated = false;
   }
