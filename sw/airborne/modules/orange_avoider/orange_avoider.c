@@ -100,13 +100,9 @@ void orange_avoider_init(void)
 
   // bind our colorfilter callbacks to receive the color filter outputs
   AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &color_detection_ev, color_detection_cb);
-<<<<<<< HEAD
-  // AbiBindMsgEDGE_COUNT(EDGE_COUNT_ID, &edge_count_ev, edge_count_cb);
-=======
 
   // Bind the edge detection message
   AbiBindMsgEDGE_COUNT(EDGE_COUNT_ID, &edge_count_ev, edge_count_cb);
->>>>>>> f95ca1bd8 (Orange_avoider now also counts the edges it sees in front of the drone. It gets this information through an ABI message from cv_detect_color_objects.c)
 }
 
 /*
