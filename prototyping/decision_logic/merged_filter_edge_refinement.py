@@ -19,6 +19,7 @@ CANNY_HIGH = 150
 
 # Define image paths
 image_name = "1284881463.jpg"
+image_name = "1231615251.jpg"
 
 input_dir = os.path.expanduser("~/paparazzi/prototyping/collected_datasets/Test3_7maart_tapijt")
 image_path = os.path.join(input_dir, image_name)

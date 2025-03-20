@@ -3,6 +3,10 @@
 <protocol>
 
   <msg_class name="airborne">
+<message name="HORIZON_DETECTION" id="38">
+    <field name="horizon" type="uint8_t *"/>
+</message>
+
 
     <message name="BARO_ABS" id="0">
       <field name="stamp" type="uint32_t" unit="us"/>

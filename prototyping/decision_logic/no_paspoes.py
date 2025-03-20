@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 # ======================
 # CONFIGURABLE VARIABLES
 # ======================
-NUM_COLUMNS = 100
-NUM_BLOCKS_PER_COLUMN = 40
+NUM_COLUMNS = 25
+NUM_BLOCKS_PER_COLUMN = 10
 THRESH_OBSTACLE = 0.4
 
 # Suppose you want the threshold line at 50% image height
@@ -25,8 +25,10 @@ X_WHITE_STRICT = 1
 Y_BLACK_STRICT = 3
 
 # Define image paths
-image_name = "1284881463.jpg"
 image_name = "1231615251.jpg"
+image_name = "1284881463.jpg"
+image_name = "1204315441.jpg"
+
 input_dir = os.path.expanduser("~/paparazzi/prototyping/collected_datasets/Test3_7maart_tapijt")
 image_path = os.path.join(input_dir, image_name)
 
