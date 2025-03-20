@@ -764,26 +764,14 @@ bool calc_fast9_lukas_kanade(struct opticflow_t *opticflow, struct image_t *img,
                                        opticflow->window_size / 2, opticflow->subpixel_factor, opticflow->max_iterations,
                                        opticflow->threshold_vec, opticflow->max_track_corners, opticflow->pyramid_level, keep_bad_points);
 
-
-  ////////////////////////////////////////////////////////////
-  // Own edited code
-  // Log alle flow vectoren om te zien of we meerdere waarden krijgen
-  fprintf(stderr, "[OF DEBUG] Tracked vectors count: %d\n", result->tracked_cnt);
-  for (int i = 0; i < result->tracked_cnt; i++) {
-      fprintf(stderr, "[OF DEBUG] Vector %d: Pos(%d, %d) -> Flow(%d, %d)\n",
-              i, vectors[i].pos.x, vectors[i].pos.y, vectors[i].flow_x, vectors[i].flow_y);
-}
-
-  int32_t fx[20], fy[20];
-
-  for (int i=0; i<20; i++) {
-    if (i<result->tracked_cnt) {
-      fx[i] = vectors[i].flow_x;
-      fy[i] = vectors[i].flow_y;
-    } else {
-      fx[i] = 0;
-      fy[i] = 0;
-    }
+  if (opticflow->show_flow) {
+    /* Draw the flow vectors on the grayscale image.
+       We choose 255 (white) as the drawing color. */
+    draw_optical_flow_vectors(&opticflow->img_gray, vectors, result->tracked_cnt,
+                              opticflow->subpixel_factor, 255);
+    
+    // Save the image with the drawn optical flow vectors to disk.
+    save_opticflow_image(&opticflow->img_gray);
   }
                                       
 //   // Log alle flow vectoren om te zien of we meerdere waarden krijgen
@@ -829,24 +817,7 @@ bool calc_fast9_lukas_kanade(struct opticflow_t *opticflow, struct image_t *img,
   //   flow_xy
   // );
 
-  // Stel count <= 10
-  int32_t flow_xy[2 * MAX_COUNT]; // of dynamic alloc, of wat je wilt
-  for (uint8_t i = 0; i < count; i++) {
-    flow_xy[2*i    ] = fx[i];
-    flow_xy[2*i + 1] = fy[i];
-  }
 
-  // Nu roep je de 'AbiSendMsg...' aan met 3 parameters:
-  //   1) sender_id
-  //   2) count
-  //   3) pointer naar flow_xy
-  AbiSendMsgOPTICAL_FLOW_VECTORS(
-    OPTICAL_FLOW_CALCULATOR_ID,
-    count,
-    flow_xy
-  );
-
-///////////////////////////////////////////////////////////////////
 
 
 
