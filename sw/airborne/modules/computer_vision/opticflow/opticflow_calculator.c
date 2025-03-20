@@ -764,7 +764,6 @@ bool calc_fast9_lukas_kanade(struct opticflow_t *opticflow, struct image_t *img,
                                        opticflow->window_size / 2, opticflow->subpixel_factor, opticflow->max_iterations,
                                        opticflow->threshold_vec, opticflow->max_track_corners, opticflow->pyramid_level, keep_bad_points);
 
-<<<<<<< HEAD
 
   ////////////////////////////////////////////////////////////
   // Own edited code
@@ -785,16 +784,6 @@ bool calc_fast9_lukas_kanade(struct opticflow_t *opticflow, struct image_t *img,
       fx[i] = 0;
       fy[i] = 0;
     }
-=======
-  if (opticflow->show_flow) {
-    /* Draw the flow vectors on the grayscale image.
-       We choose 255 (white) as the drawing color. */
-    draw_optical_flow_vectors(&opticflow->img_gray, vectors, result->tracked_cnt,
-                              opticflow->subpixel_factor, 255);
-    
-    // Save the image with the drawn optical flow vectors to disk.
-    save_opticflow_image(&opticflow->img_gray);
->>>>>>> probleem_oplossen
   }
                                       
 //   // Log alle flow vectoren om te zien of we meerdere waarden krijgen
@@ -840,7 +829,6 @@ bool calc_fast9_lukas_kanade(struct opticflow_t *opticflow, struct image_t *img,
   //   flow_xy
   // );
 
-<<<<<<< HEAD
   // Stel count <= 10
   int32_t flow_xy[2 * MAX_COUNT]; // of dynamic alloc, of wat je wilt
   for (uint8_t i = 0; i < count; i++) {
@@ -859,9 +847,6 @@ bool calc_fast9_lukas_kanade(struct opticflow_t *opticflow, struct image_t *img,
   );
 
 ///////////////////////////////////////////////////////////////////
-=======
-
->>>>>>> probleem_oplossen
 
 
 
