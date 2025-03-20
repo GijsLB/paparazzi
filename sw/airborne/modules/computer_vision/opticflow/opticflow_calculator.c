@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>   // for sqrtf, fabs, etc.
 
 // Own Header
 #include "opticflow_calculator.h"
@@ -49,7 +50,7 @@
 
 // to get the definition of front_camera / bottom_camera
 #include BOARD_CONFIG
-#define MAX_COUNT 20  // of bovenin het bestand
+#define MAX_COUNT 50  // of bovenin het bestand
 // whether to show the flow and corners:
 #define OPTICFLOW_SHOW_CORNERS 0
 
@@ -57,7 +58,7 @@
 #define ACT_FAST 1
 // TODO: these are now adapted, but perhaps later could be a setting:
 uint16_t n_time_steps[2] = {10, 10};
-uint16_t n_agents[2] = {25, 25};
+uint16_t n_agents[2] = {50, 50};
 
 // What methods are run to determine divergence, lateral flow, etc.
 // SIZE_DIV looks at line sizes and only calculates divergence
@@ -65,6 +66,157 @@ uint16_t n_agents[2] = {25, 25};
 // LINEAR_FIT makes a linear optical flow field fit and extracts a lot of information:
 // relative velocities in x, y, z (divergence / time to contact), the slope of the surface, and the surface roughness.
 #define LINEAR_FIT 0
+
+//////////////////////////////
+
+/**
+ * @brief Safely set a pixel in the image to a color (grayscale).
+ *        For color images, adapt accordingly.
+ *
+ * @param img       Pointer to the image_t structure.
+ * @param x, y      Pixel coordinates in the image.
+ * @param gray_val  Grayscale value (0-255).
+ */
+static inline void set_pixel_gray(struct image_t *img, int x, int y, uint8_t gray_val)
+{
+  if (x < 0 || x >= (int)img->w || y < 0 || y >= (int)img->h) {
+    return; // out of bounds
+  }
+  // For a 1-byte/pixel grayscale image:
+  int index = y * img->w + x;
+  ((uint8_t *)img->buf)[index] = gray_val;
+
+}
+
+/**
+ * @brief Draw a line on a grayscale image using a simple Bresenham algorithm.
+ *
+ * @param img    Pointer to the image.
+ * @param x0,y0  Start of the line.
+ * @param x1,y1  End of the line.
+ * @param color  Grayscale color (0-255).
+ */
+static void draw_line_gray(struct image_t *img,
+                           int x0, int y0,
+                           int x1, int y1,
+                           uint8_t color)
+{
+  int dx = abs(x1 - x0);
+  int sx = (x0 < x1) ? 1 : -1;
+  int dy = -abs(y1 - y0);
+  int sy = (y0 < y1) ? 1 : -1;
+  int err = dx + dy;
+
+  while (true) {
+    set_pixel_gray(img, x0, y0, color);
+    if (x0 == x1 && y0 == y1) {
+      break;
+    }
+    int e2 = 2 * err;
+    if (e2 >= dy) {
+      err += dy;
+      x0 += sx;
+    }
+    if (e2 <= dx) {
+      err += dx;
+      y0 += sy;
+    }
+  }
+}
+
+/**
+ * @brief Draw a small arrowhead at the line endpoint to indicate direction.
+ *
+ * @param img      Pointer to the image.
+ * @param x_tip,y_tip  Coordinates of the arrow tip (line endpoint).
+ * @param dx, dy   The flow vector (for orientation).
+ * @param color    Grayscale color (0-255).
+ */
+static void draw_arrowhead_gray(struct image_t *img,
+                                int x_tip, int y_tip,
+                                float dx, float dy,
+                                uint8_t color)
+{
+  const float arrow_size = 4.0f;
+  float len = sqrtf(dx * dx + dy * dy) + 1e-5f;
+  float nx = dx / len; // unit vector x
+  float ny = dy / len; // unit vector y
+
+  // perpendicular to (nx, ny) is (-ny, nx)
+  float px = -ny;
+  float py =  nx;
+
+  // compute two 'wing' points
+  int xw1 = (int)(x_tip + arrow_size * px);
+  int yw1 = (int)(y_tip + arrow_size * py);
+  int xw2 = (int)(x_tip - arrow_size * px);
+  int yw2 = (int)(y_tip - arrow_size * py);
+
+  draw_line_gray(img, x_tip, y_tip, xw1, yw1, color);
+  draw_line_gray(img, x_tip, y_tip, xw2, yw2, color);
+}
+
+/**
+ * @brief Draw each optical flow vector on the given grayscale image as an arrow.
+ *
+ * @param img           Pointer to the image where vectors will be drawn.
+ * @param flow_vectors  Array of flow_t elements (pos.x, pos.y, flow_x, flow_y).
+ * @param n_vectors     Number of flow vectors in the array.
+ * @param subpix_factor Subpixel scaling factor from your flow computation.
+ * @param gray_color    Grayscale color for the vectors (0-255).
+ */
+static void draw_optical_flow_vectors(struct image_t      *img,
+                                      const struct flow_t *flow_vectors,
+                                      int                  n_vectors,
+                                      int                  subpix_factor,
+                                      uint8_t             gray_color)
+{
+  for (int i = 0; i < n_vectors; i++) {
+    // old (feature) position in subpixel coords
+    int x0 = flow_vectors[i].pos.x;
+    int y0 = flow_vectors[i].pos.y;
+
+    // flow is also in subpixel units => scale it down
+    float fx = (float)flow_vectors[i].flow_x / (float)subpix_factor;
+    float fy = (float)flow_vectors[i].flow_y / (float)subpix_factor;
+
+    // new position
+    float x1f = (float)x0 + fx;
+    float y1f = (float)y0 + fy;
+    int x1 = (int)(x1f + 0.5f);
+    int y1 = (int)(y1f + 0.5f);
+
+    // draw line from old to new
+    draw_line_gray(img, x0, y0, x1, y1, gray_color);
+
+    // arrowhead
+    draw_arrowhead_gray(img, x1, y1, fx, fy, gray_color);
+  }
+}
+
+
+/**
+ * @brief Save the given image to a file in PGM format with a timestamped filename.
+ *
+ * @param img Pointer to the image_t structure to be saved.
+ */
+void save_opticflow_image(struct image_t *img) {
+  char filename[256];
+  time_t now = time(NULL);
+  struct tm *tm_info = localtime(&now);
+  // Build filename in /tmp folder with date and time
+  strftime(filename, sizeof(filename), "/tmp/opticflow_%Y%m%d_%H%M%S.pgm", tm_info);
+  
+  // // Call your image-saving function.
+  // // Here we assume a function image_save() exists that takes (image, filename)
+  // if (image_save(img, filename) != 0) {
+  //   fprintf(stderr, "Error saving flow image to %s\n", filename);
+  // } else {
+  //   fprintf(stderr, "Flow image saved to %s\n", filename);
+  // }
+}
+
+//////////////////////////////
 
 #ifndef OPTICFLOW_CORNER_METHOD
 #define OPTICFLOW_CORNER_METHOD ACT_FAST
@@ -78,11 +230,11 @@ PRINT_CONFIG_VAR(OPTICFLOW_CORNER_METHOD_CAMERA2)
 
 /* Set the default values */
 #ifndef OPTICFLOW_MAX_TRACK_CORNERS
-#define OPTICFLOW_MAX_TRACK_CORNERS 25
+#define OPTICFLOW_MAX_TRACK_CORNERS 50
 #endif
 
 #ifndef OPTICFLOW_MAX_TRACK_CORNERS_CAMERA2
-#define OPTICFLOW_MAX_TRACK_CORNERS_CAMERA2 25
+#define OPTICFLOW_MAX_TRACK_CORNERS_CAMERA2 50
 #endif
 PRINT_CONFIG_VAR(OPTICFLOW_MAX_TRACK_CORNERS)
 PRINT_CONFIG_VAR(OPTICFLOW_MAX_TRACK_CORNERS_CAMERA2)
@@ -363,10 +515,10 @@ PRINT_CONFIG_VAR(OPTICFLOW_ACTFAST_MIN_GRADIENT_CAMERA2)
 PRINT_CONFIG_VAR(OPTICFLOW_TRACK_BACK)
 PRINT_CONFIG_VAR(OPTICFLOW_TRACK_BACK_CAMERA2)
 
-// Whether to draw the flow on the image:
+// Whether to draw the flow on the image:  SETTING AAN
 // False by default, since it changes the image and costs time.
 #ifndef OPTICFLOW_SHOW_FLOW
-#define OPTICFLOW_SHOW_FLOW FALSE
+#define OPTICFLOW_SHOW_FLOW TRUE
 #endif
 
 #ifndef OPTICFLOW_SHOW_FLOW_CAMERA2
@@ -612,6 +764,7 @@ bool calc_fast9_lukas_kanade(struct opticflow_t *opticflow, struct image_t *img,
                                        opticflow->window_size / 2, opticflow->subpixel_factor, opticflow->max_iterations,
                                        opticflow->threshold_vec, opticflow->max_track_corners, opticflow->pyramid_level, keep_bad_points);
 
+<<<<<<< HEAD
 
   ////////////////////////////////////////////////////////////
   // Own edited code
@@ -632,15 +785,62 @@ bool calc_fast9_lukas_kanade(struct opticflow_t *opticflow, struct image_t *img,
       fx[i] = 0;
       fy[i] = 0;
     }
+=======
+  if (opticflow->show_flow) {
+    /* Draw the flow vectors on the grayscale image.
+       We choose 255 (white) as the drawing color. */
+    draw_optical_flow_vectors(&opticflow->img_gray, vectors, result->tracked_cnt,
+                              opticflow->subpixel_factor, 255);
+    
+    // Save the image with the drawn optical flow vectors to disk.
+    save_opticflow_image(&opticflow->img_gray);
+>>>>>>> probleem_oplossen
   }
-  uint8_t count = result->tracked_cnt;
-  if (count > 20) count=20;
+                                      
+//   // Log alle flow vectoren om te zien of we meerdere waarden krijgen
+//   fprintf(stderr, "[OF DEBUG] Tracked vectors count: %d\n", result->tracked_cnt);
+//   for (int i = 0; i < result->tracked_cnt; i++) {
+//       fprintf(stderr, "[OF DEBUG] Vector %d: Pos(%d, %d) -> Flow(%d, %d)\n",
+//               i, vectors[i].pos.x, vectors[i].pos.y, vectors[i].flow_x, vectors[i].flow_y);
+// }
 
-  // AbiSendMsgOPTICAL_FLOW_VECTORS(OPTICAL_FLOW_CALCULATOR_ID, count,
-  //   fx[0],fy[0], fx[1],fy[1], fx[2],fy[2], fx[3],fy[3], fx[4],fy[4],
-  //   fx[5],fy[5], fx[6],fy[6], fx[7],fy[7], fx[8],fy[8], fx[9],fy[9]
+  // int32_t fx[20], fy[20];
+
+  // for (int i=0; i<20; i++) {
+  //   if (i<result->tracked_cnt) {
+  //     fx[i] = vectors[i].flow_x;
+  //     fy[i] = vectors[i].flow_y;
+  //   } else {
+  //     fx[i] = 0;
+  //     fy[i] = 0;
+  //   }
+  // }
+  // uint8_t count = result->tracked_cnt;
+  // if (count > 20) count=20;
+
+  // // AbiSendMsgOPTICAL_FLOW_VECTORS(OPTICAL_FLOW_CALCULATOR_ID, count,
+  // //   fx[0],fy[0], fx[1],fy[1], fx[2],fy[2], fx[3],fy[3], fx[4],fy[4],
+  // //   fx[5],fy[5], fx[6],fy[6], fx[7],fy[7], fx[8],fy[8], fx[9],fy[9]
+  // // );
+
+  // // Stel count <= 10
+  // int32_t flow_xy[2 * MAX_COUNT]; // of dynamic alloc, of wat je wilt
+  // for (uint8_t i = 0; i < count; i++) {
+  //   flow_xy[2*i    ] = fx[i];
+  //   flow_xy[2*i + 1] = fy[i];
+  // }
+
+  // // Nu roep je de 'AbiSendMsg...' aan met 3 parameters:
+  // //   1) sender_id
+  // //   2) count
+  // //   3) pointer naar flow_xy
+  // AbiSendMsgOPTICAL_FLOW_VECTORS(
+  //   OPTICAL_FLOW_CALCULATOR_ID,
+  //   count,
+  //   flow_xy
   // );
 
+<<<<<<< HEAD
   // Stel count <= 10
   int32_t flow_xy[2 * MAX_COUNT]; // of dynamic alloc, of wat je wilt
   for (uint8_t i = 0; i < count; i++) {
@@ -659,6 +859,9 @@ bool calc_fast9_lukas_kanade(struct opticflow_t *opticflow, struct image_t *img,
   );
 
 ///////////////////////////////////////////////////////////////////
+=======
+
+>>>>>>> probleem_oplossen
 
 
 
@@ -830,6 +1033,48 @@ bool calc_fast9_lukas_kanade(struct opticflow_t *opticflow, struct image_t *img,
           result->flow_der_y = (vectors[result->tracked_cnt / 2 - 1].flow_y + vectors[result->tracked_cnt / 2].flow_y) / 2.f;
         }
       }
+
+
+      int32_t fx[20], fy[20];
+
+      for (int i=0; i<20; i++) {
+        if (i<result->tracked_cnt) {
+          fx[i] = vectors[i].flow_x;
+          fy[i] = vectors[i].flow_y;
+        } else {
+          fx[i] = 0;
+          fy[i] = 0;
+        }
+      }
+      uint8_t count = result->tracked_cnt;
+      if (count > 20) count=20;
+    
+      // AbiSendMsgOPTICAL_FLOW_VECTORS(OPTICAL_FLOW_CALCULATOR_ID, count,
+      //   fx[0],fy[0], fx[1],fy[1], fx[2],fy[2], fx[3],fy[3], fx[4],fy[4],
+      //   fx[5],fy[5], fx[6],fy[6], fx[7],fy[7], fx[8],fy[8], fx[9],fy[9]
+      // );
+    
+      // Stel count <= 10
+      int32_t flow_xy[2 * MAX_COUNT]; // of dynamic alloc, of wat je wilt
+      for (uint8_t i = 0; i < count; i++) {
+        flow_xy[2*i    ] = fx[i];
+        flow_xy[2*i + 1] = fy[i];
+      }
+    
+      // Nu roep je de 'AbiSendMsg...' aan met 3 parameters:
+      //   1) sender_id
+      //   2) count
+      //   3) pointer naar flow_xy
+      AbiSendMsgOPTICAL_FLOW_VECTORS(
+        OPTICAL_FLOW_CALCULATOR_ID,
+        count,
+        flow_xy
+      );
+
+
+
+
+
     }
   }
   result->camera_id = opticflow->id;
