@@ -25,40 +25,44 @@ for item in sorted(os.listdir(input_dir)):
     image = cv2.imread(image_path)
     images.append(image)
 
-# Detect green in flight path
-def green_path(image):
-    # Specify region
-    x = int(1040 / 4 * 3 - 25)
-    y = 230
-    height = 10
-    width = 50
-    roi = image[y:y + height, x:x + width]
+# Function to find the green column with the highest green score in the right half of the image
+def find_highest_green_column(image):
+    height, width, _ = image.shape
+
+    # Only process the right half of the image
+    right_image = image[:, width//2:]
 
     # Split BGR channels
-    blue, green, red = cv2.split(roi)
+    blue, green, red = cv2.split(right_image)
 
-    # Find pixels where green is dominant
-    green_threshold = 150
-    green_mask = (green > green_threshold) & (green > red) & (green > blue)
+    # Calculate the green score for each column in the right half
+    green_scores = np.sum(green, axis=0)
 
-    # If any pixel is green, return True
-    return np.all(green_mask)
+    # Find the column with the highest green score
+    highest_green_column = np.argmax(green_scores)
+
+    # Adjust the index to refer to the right half of the original image
+    highest_green_column += width // 2
+
+    return highest_green_column
 
 
-def steering_marker(image, condition):
-    x = int(1040 / 4 * 3 - 25)
-    y = 0
-    height = 10
-    width = 50
-    if not condition:
-        # Paint the region blue (BGR: (255, 0, 0))
-        image[y:y + height, x:x + width] = (0, 0, 255)
+# Function to mark the highest green column as blue in the right half
+def mark_highest_green_column(image):
+    highest_green_column = find_highest_green_column(image)
+    height, width, _ = image.shape
+
+    # Mark the highest green column as blue in the right half
+    image[:, highest_green_column:highest_green_column+5] = [0, 0, 255]  # Blue in BGR
+
     return image
 
+
+# Process each image
 new_images = []
 for image in images:
-    new_image = steering_marker(image, green_path(image))
+    new_image = mark_highest_green_column(image)
     new_images.append(new_image)
-imageio.mimsave(output_path, new_images, duration=0.1)
 
-   
+# Save the output as a GIF
+imageio.mimsave(output_path, new_images, duration=0.3)
