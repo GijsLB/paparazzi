@@ -354,7 +354,7 @@ PRINT_CONFIG_VAR(OPTICFLOW_ACTFAST_MIN_GRADIENT_CAMERA2)
 // Tracking back flow to make the accepted flow vectors more robust:
 // Default is false, as it does take extra processing time
 #ifndef OPTICFLOW_TRACK_BACK
-#define OPTICFLOW_TRACK_BACK FALSE
+#define OPTICFLOW_TRACK_BACK TRUE
 #endif
 
 #ifndef OPTICFLOW_TRACK_BACK_CAMERA2
@@ -366,7 +366,7 @@ PRINT_CONFIG_VAR(OPTICFLOW_TRACK_BACK_CAMERA2)
 // Whether to draw the flow on the image:
 // False by default, since it changes the image and costs time.
 #ifndef OPTICFLOW_SHOW_FLOW
-#define OPTICFLOW_SHOW_FLOW FALSE
+#define OPTICFLOW_SHOW_FLOW TRUE
 #endif
 
 #ifndef OPTICFLOW_SHOW_FLOW_CAMERA2
