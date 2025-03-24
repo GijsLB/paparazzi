@@ -121,6 +121,9 @@ void orange_avoider_init(void)
 
   // Bind the edge detection message
   AbiBindMsgEDGE_COUNT(EDGE_COUNT_ID, &edge_count_ev, edge_count_cb);
+
+  // bind the groundfilter callbacks to receive the ground filter outputs
+  AbiBindMsgGROUND_DETECTION(GROUND_FILTER_ID, &ground_filter_ev, ground_filter_cb);
 }
 
 /*
