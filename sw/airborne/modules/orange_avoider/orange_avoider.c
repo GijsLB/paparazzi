@@ -88,6 +88,24 @@ static void edge_count_cb(uint8_t __attribute__((unused)) sender_id, uint32_t ed
   VERBOSE_PRINT("Carpet advice: %u\n", edge_count);
 }
 
+static abi_ground_detection_ev;
+static void ground_filter_cb(uint8_t __attribute__((unused)) sender_id, int16_t *ground_array, uint16_t array_size)
+{
+  // Process ground filter data here
+  int best_heading_index = 0;
+  int max_value = ground_array[0];
+
+  for (uint16_t i = 1; i < array_size; i++) {
+    if (ground_array[i] > max_value) {
+      max_value = ground_array[i];
+      best_heading_index = i;
+    }
+  }
+
+  // Convert best index to steering angle (example, assuming evenly spaced headings)
+  float angle_per_index = 180.0f / (float)array_size;
+  heading_increment = -90.0f + (best_heading_index * angle_per_index); // Assuming center is 0 degrees
+}
 
 /*
  * Initialisation function, setting the colour filter, random seed and heading_increment
