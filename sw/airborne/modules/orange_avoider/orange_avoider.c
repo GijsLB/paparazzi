@@ -50,8 +50,6 @@ enum navigation_state_t {
   OUT_OF_BOUNDS
   };
 
-// define settings
-float oa_color_count_frac = 0.18f;
 
 // define and initialise global variables
 enum navigation_state_t navigation_state = SEARCH_FOR_SAFE_HEADING;
@@ -69,42 +67,12 @@ const int16_t max_trajectory_confidence = 5; // number of consecutive negative o
  * in different threads. The ABI event is triggered every time new data is sent out, and as such the function
  * defined in this file does not need to be explicitly called, only bound in the init function
  */
-#ifndef ORANGE_AVOIDER_VISUAL_DETECTION_ID
-#define ORANGE_AVOIDER_VISUAL_DETECTION_ID ABI_BROADCAST
-#endif
-static abi_event color_detection_ev;
-static void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
-                               int16_t __attribute__((unused)) pixel_x, int16_t __attribute__((unused)) pixel_y,
-                               int16_t __attribute__((unused)) pixel_width, int16_t __attribute__((unused)) pixel_height,
-                               int32_t quality, int16_t __attribute__((unused)) extra)
-{
-  color_count = quality;
-}
 
-static abi_event edge_count_ev;
-static void edge_count_cb(uint8_t __attribute__((unused)) sender_id, uint32_t edge_count)
-{
-  printf("[orange_avoider] Received carpet advice: %u\n", edge_count);
-  VERBOSE_PRINT("Carpet advice: %u\n", edge_count);
-}
 
 static abi_ground_detection_ev;
-static void ground_filter_cb(uint8_t __attribute__((unused)) sender_id, int16_t *ground_array, uint16_t array_size)
+static void ground_filter_cb(uint8_t __attribute__((unused)) sender_id, bool object_ahead)
 {
-  // Process ground filter data here
-  int best_heading_index = 0;
-  int max_value = ground_array[0];
-
-  for (uint16_t i = 1; i < array_size; i++) {
-    if (ground_array[i] > max_value) {
-      max_value = ground_array[i];
-      best_heading_index = i;
-    }
-  }
-
-  // Convert best index to steering angle (example, assuming evenly spaced headings)
-  float angle_per_index = 180.0f / (float)array_size;
-  heading_increment = -90.0f + (best_heading_index * angle_per_index); // Assuming center is 0 degrees
+  object_found = object_ahead;
 }
 
 /*
@@ -115,12 +83,6 @@ void orange_avoider_init(void)
   // Initialise random values
   srand(time(NULL));
   chooseRandomIncrementAvoidance();
-
-  // bind our colorfilter callbacks to receive the color filter outputs
-  AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &color_detection_ev, color_detection_cb);
-
-  // Bind the edge detection message
-  AbiBindMsgEDGE_COUNT(EDGE_COUNT_ID, &edge_count_ev, edge_count_cb);
 
   // bind the groundfilter callbacks to receive the ground filter outputs
   AbiBindMsgGROUND_DETECTION(GROUND_FILTER_ID, &ground_filter_ev, ground_filter_cb);
@@ -136,16 +98,14 @@ void orange_avoider_periodic(void)
     return;
   }
 
-  // compute current color thresholds
-  int32_t color_count_threshold = oa_color_count_frac * front_camera.output_size.w * front_camera.output_size.h;
 
-  VERBOSE_PRINT("Color_count: %d  threshold: %d state: %d \n", color_count, color_count_threshold, navigation_state);
+  VERBOSE_PRINT("Object in front: %d \n", object_found);
 
   // update our safe confidence using color threshold
-  if(color_count < color_count_threshold){
-    obstacle_free_confidence++;
+  if(object_found){
+    obstacle_free_confidence = 0;
   } else {
-    obstacle_free_confidence -= 2;  // be more cautious with positive obstacle detections
+    obstacle_free_confidence = max_trajectory_confidence;  // be more cautious with positive obstacle detections
   }
 
   // bound obstacle_free_confidence
