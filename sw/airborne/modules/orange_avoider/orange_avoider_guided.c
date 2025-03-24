@@ -56,7 +56,7 @@ enum navigation_state_t {
 float oag_color_count_frac = 0.18f;       // obstacle detection threshold as a fraction of total of image
 float oag_floor_count_frac = 0.05f;       // floor detection threshold as a fraction of total of image
 float oag_max_speed = 0.5f;               // max flight speed [m/s]
-float oag_heading_rate = RadOfDeg(20.f);  // heading change setpoint for avoidance [rad/s]
+float oag_heading_rate = RadOfDeg(45.f);  // heading change setpoint for avoidance [rad/s]
 
 // define and initialise global variables
 enum navigation_state_t navigation_state = SEARCH_FOR_SAFE_HEADING;   // current state in state machine
@@ -177,20 +177,45 @@ void orange_avoider_guided_periodic(void)
       // stop
       guidance_h_set_body_vel(0, 0);
 
-      // start turn back into arena
-      guidance_h_set_heading_rate(avoidance_heading_direction * RadOfDeg(15));
+      // Force a complete 180-degree turn by setting a higher heading rate
+      guidance_h_set_heading_rate(avoidance_heading_direction * RadOfDeg(45));
+      
+      fprintf(stderr, "[OAG] OUT_OF_BOUNDS: Starting 180° turn, current heading: %f\n", 
+              DegOfRad(stateGetNedToBodyEulers_f()->psi));
 
       navigation_state = REENTER_ARENA;
-
       break;
+
     case REENTER_ARENA:
-      // force floor center to opposite side of turn to head back into arena
-      if (floor_count >= floor_count_threshold && avoidance_heading_direction * floor_centroid_frac >= 0.f){
+      // Check if we've completed roughly a 180° turn
+      static float initial_heading = 0;
+      static bool turn_initialized = false;
+      
+      if (!turn_initialized) {
+        initial_heading = stateGetNedToBodyEulers_f()->psi;
+        turn_initialized = true;
+        fprintf(stderr, "[OAG] Starting turn at heading: %f\n", DegOfRad(initial_heading));
+      }
+
+      float current_heading = stateGetNedToBodyEulers_f()->psi;
+      float heading_diff = fabsf(current_heading - initial_heading);
+      if (heading_diff > M_PI) {
+        heading_diff = 2 * M_PI - heading_diff;  // Handle wrap-around
+      }
+
+      fprintf(stderr, "[OAG] Current turn progress: %f degrees\n", DegOfRad(heading_diff));
+
+      // Check if we've turned close to 180 degrees
+      if (heading_diff > RadOfDeg(170)) {  // Allow for some margin of error
         // return to heading mode
-        guidance_h_set_heading(stateGetNedToBodyEulers_f()->psi);
+        guidance_h_set_heading(current_heading);
+        turn_initialized = false;  // Reset for next time
 
         // reset safe counter
         obstacle_free_confidence = 0;
+
+        fprintf(stderr, "[OAG] Completed 180° turn, new heading: %f\n", 
+                DegOfRad(current_heading));
 
         // ensure direction is safe before continuing
         navigation_state = SAFE;

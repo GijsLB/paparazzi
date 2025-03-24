@@ -31,12 +31,12 @@
 #define MIN_VALID_VECTORS 5              // Minimum number of valid vectors needed for reliable detection
 #define MOVING_AVERAGE_SIZE 3            // Window size for temporal smoothing
 #define DANGER_THRESHOLD 25.0f           // Higher threshold for immediate action
-#define CAUTION_THRESHOLD 15.0f          // Lower threshold for gradual response
-#define BASE_FORWARD_SPEED 1.2f          // Increased base forward speed
+#define CAUTION_THRESHOLD 5.0f          // Lower threshold for gradual response
+#define BASE_FORWARD_SPEED 1.0f          // Increased base forward speed
 #define MIN_FORWARD_SPEED 0.8f           // Minimum speed when near obstacles
 #define MIN_TURN_ANGLE 45.0f            // Minimum turn to avoid obstacle
 #define MAX_TURN_ANGLE 120.0f           // Maximum turn when danger is high
-#define SECTOR_SAFETY_MARGIN 0.25f       // Safety margin from sector boundaries (meters)
+#define SECTOR_SAFETY_MARGIN 0.50f       // Safety margin from sector boundaries (meters)
 #define OSCILLATION_PERIOD 1.5f         // Faster oscillation for quicker flow detection
 #define OSCILLATION_AMPLITUDE 10.0f      // Reduced oscillation to maintain forward motion
 #define PROGRESS_CHECK_INTERVAL 1.0f    // Check progress more frequently
@@ -274,6 +274,10 @@ void opticalflow_avoider_periodic(void) {
 
     switch (of_state) {
         case OF_STATE_WAIT_FORWARD:
+            // --- Added debug print for this state ---
+            OF_PRINT("[OF_STATE_WAIT_FORWARD] dt=%.2f, obstacle=%d, boundary=%d\n",
+                dt_s, obstacle_detected, near_boundary);
+        
             if (dt_s > POST_TURN_CHECK_TIME) {
                 if (obstacle_detected || near_boundary) {
                     of_set_state(OF_STATE_CHECK_OBSTACLE);
@@ -293,6 +297,10 @@ void opticalflow_avoider_periodic(void) {
             break;
 
         case OF_STATE_OSCILLATING:
+            // --- Added debug print for this state ---
+            OF_PRINT("[OF_STATE_OSCILLATING] dt=%.2f, obstacle=%d, boundary=%d\n",
+                dt_s, obstacle_detected, near_boundary);
+
             if (obstacle_detected || near_boundary) {
                 of_set_state(OF_STATE_CHECK_OBSTACLE);
             } else {
@@ -301,12 +309,16 @@ void opticalflow_avoider_periodic(void) {
                 nav.heading = new_heading;
                 
                 // Maintain forward movement during oscillation
-                current_forward_speed = get_adjusted_forward_speed(smoothed_magnitude);
+                current_forward_speed = get_adjusted_forward_speed(0.1 * smoothed_magnitude);
                 of_move_waypoint_forward(WP_GOAL, current_forward_speed);
             }
             break;
 
         case OF_STATE_CHECK_OBSTACLE:
+            // --- Added debug print for this state ---
+            OF_PRINT("[OF_STATE_CHECK_OBSTACLE] dt=%.2f, obstacle=%d, boundary=%d\n",
+                dt_s, obstacle_detected, near_boundary);
+
             if (obstacle_detected || near_boundary) {
                 float turn_angle = get_turn_angle(smoothed_magnitude);
                 of_increase_heading(turn_angle);
@@ -319,6 +331,9 @@ void opticalflow_avoider_periodic(void) {
             break;
 
         case OF_STATE_ROTATING: {
+            // --- Added debug print for this state ---
+            OF_PRINT("[OF_STATE_ROTATING] dt=%.2f\n", dt_s);
+
             float current_psi = stateGetNedToBodyEulers_f()->psi;
             float diff = current_psi - nav.heading;
             FLOAT_ANGLE_NORMALIZE(diff);
@@ -480,6 +495,9 @@ void opticalflow_avoider_init(void) {
 
     OF_PRINT("CyberZoo bounding box: X in [%.2f, %.2f], Y in [%.2f, %.2f]\n",
             cyber_min_x, cyber_max_x, cyber_min_y, cyber_max_y);
+    
+    OF_PRINT("OZ1 local coords: x=%.2f y=%.2f\n", x1, y1);
+    OF_PRINT("OZ2 local coords: x=%.2f y=%.2f\n", x2, y2);
     
     // Clear motion history
     for(int i = 0; i < MOVING_AVERAGE_SIZE; i++) {

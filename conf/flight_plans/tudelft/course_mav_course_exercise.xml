@@ -13,11 +13,22 @@
     #include "modules/nav/waypoints.h"
     <!-- Voeg de conversie header toe voor fixed-point conversie -->
     #include "math/pprz_algebra_int.h"
+    
+    #include "autopilot.h"
+    inline void setNav(void){
+      autopilot_mode_auto2 = AP_MODE_NAV;
+        autopilot_static_set_mode(AP_MODE_NAV);
+    }
+    inline void setGuided(void){
+      autopilot_mode_auto2 = AP_MODE_GUIDED;
+      autopilot_static_set_mode(AP_MODE_GUIDED);
+    }
 
     inline uint8_t SetWPAlt(uint8_t wp_id, float alt_m) {
       waypoint_set_alt_i(wp_id, POS_BFP_OF_REAL(alt_m));
-      return 0;
+      return 0;    
     }
+    
   </header>
   <waypoints>
     <waypoint lat="51.990631" lon="4.376796" name="HOME"/>
@@ -116,7 +127,7 @@
     </block>
     <block key="g" name="START" strip_button="Go" strip_icon="lookfore.png">
       <call_once fun="NavSetWaypointHere(WP_GOAL)"/>
-      <stay wp="GOAL"/>
+      <stay wp="GOAL" until="(stage_time @GT 1.0)"/>
       <deroute block="Oscillation"/>
     </block>
     <block name="STOP">
@@ -161,20 +172,22 @@
       <attitude pitch="0" roll="0" throttle="0" until="FALSE" vmode="throttle"/>
     </block>
 
+    <!-- "Oscillation" block that does a short heading movement or altitude shift,
+         then returns control to advanced code. -->
     <block name="Oscillation">
-      <call fun="SetWPAlt(WP_GOAL, 2.0)"/>
-      <!-- Blijf hier tot 3s voorbij is -->
-      <stay wp="GOAL" vmode="alt" until="(stage_time @GT 0.1)"/>
+      <!-- Example: do a quick heading offset for 2 seconds -->
+      <heading course="DegOfRad(nav.heading)+15" vmode="alt" alt="1.5"
+               until="(stage_time @GT 2.0)"/>
 
-      <!-- Daarna WP_GOAL op 0.2 m -->
-      <call fun="SetWPAlt(WP_GOAL, 1.0)"/>
-      <!-- Blijf hier tot 3s voorbij is -->
-      <stay wp="GOAL" vmode="alt" until="(stage_time @GT 0.1)"/>
-      <!-- Oneindige lus -->
-      <deroute block="Oscillation"/>
+      <!-- Then we exit to a 'FREE' block so we do NOT get stuck -->
+      <deroute block="FREE"/>
     </block>
-
-
+    
+    <block name="FREE">
+      <call_once fun="setNav()"/>		
+      <go wp="GOAL" hmode="route"/>
+      <while cond="TRUE"/>
+    </block>
 
   </blocks>
 </flight_plan>
