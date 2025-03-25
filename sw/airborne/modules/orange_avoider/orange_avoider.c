@@ -42,6 +42,7 @@ static uint8_t calculateForwards(struct EnuCoor_i *new_coor, float distanceMeter
 static uint8_t moveWaypoint(uint8_t waypoint, struct EnuCoor_i *new_coor);
 static uint8_t increase_nav_heading(float incrementDegrees);
 static uint8_t chooseRandomIncrementAvoidance(void);
+bool object_ahead = false;
 
 enum navigation_state_t {
   SAFE,
@@ -69,10 +70,10 @@ const int16_t max_trajectory_confidence = 5; // number of consecutive negative o
  */
 
 
-static abi_ground_detection_ev;
-static void ground_filter_cb(uint8_t __attribute__((unused)) sender_id, bool object_ahead)
+static abi_event ground_detection_ev;
+static void ground_filter_cb(uint8_t __attribute__((unused)) sender_id, bool detected)
 {
-  object_found = object_ahead;
+  object_ahead = detected;
 }
 
 /*
@@ -85,7 +86,7 @@ void orange_avoider_init(void)
   chooseRandomIncrementAvoidance();
 
   // bind the groundfilter callbacks to receive the ground filter outputs
-  AbiBindMsgGROUND_DETECTION(GROUND_FILTER_ID, &ground_filter_ev, ground_filter_cb);
+  AbiBindMsgHORIZON_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &ground_detection_ev, ground_filter_cb);
 }
 
 /*
@@ -99,10 +100,10 @@ void orange_avoider_periodic(void)
   }
 
 
-  VERBOSE_PRINT("Object in front: %d \n", object_found);
+  VERBOSE_PRINT("Object in front: %d \n", object_ahead);
 
   // update our safe confidence using color threshold
-  if(object_found){
+  if(object_ahead){
     obstacle_free_confidence = 0;
   } else {
     obstacle_free_confidence = max_trajectory_confidence;  // be more cautious with positive obstacle detections

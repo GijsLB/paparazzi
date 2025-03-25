@@ -3,6 +3,10 @@
 <protocol>
 
   <msg_class name="airborne">
+    <message name="HORIZON_DETECTION" id="38">
+        <field name="CONTINUE" type="bool"/>
+    </message>
+
 
     <message name="BARO_ABS" id="0">
       <field name="stamp" type="uint32_t" unit="us"/>
@@ -255,10 +259,6 @@
       <field name="size" type="uint16_t">size of a matrix element</field>
       <field name="subtype" type="uint8_t">subtype of data, driver dependent (e.g. distance, reflectance, ...)</field>
       <field name="data" type="uint8_t*">pointer to the data of the matrix</field>
-    </message>
-    
-    <message name="EDGE_COUNT" id="39">
-      <field name="edge_count" type="uint32_t"/>
     </message>
 
   </msg_class>
