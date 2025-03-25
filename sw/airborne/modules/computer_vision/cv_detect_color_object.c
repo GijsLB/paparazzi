@@ -204,16 +204,23 @@ void color_object_detector_periodic(void) {
     if (local_result.updated) {
         local_result.updated = false;
 
-        // Check if the four middle values are all greater than 1
+        // Use white_pixel_counts instead of local_result.white_counts
         int mid1 = GRID_ROWS / 2 - 2;
         int mid2 = GRID_ROWS / 2 - 1;
         int mid3 = GRID_ROWS / 2;
         int mid4 = GRID_ROWS / 2 + 1;
 
-        bool condition_met = (local_result.white_counts[mid1] > 1 &&
-                               local_result.white_counts[mid2] > 1 &&
-                               local_result.white_counts[mid3] > 1 &&
-                               local_result.white_counts[mid4] > 1);
+        bool condition_met = (global_result.white_counts[mid1] > 1 &&
+                               global_result.white_counts[mid2] > 1 &&
+                               global_result.white_counts[mid3] > 1 &&
+                               global_result.white_counts[mid4] > 1);
+
+        // Debugging: Print values for verification
+        printf("Mid1: %d, Mid2: %d, Mid3: %d, Mid4: %d\n", 
+            global_result.white_counts[mid1], 
+            global_result.white_counts[mid2], 
+            global_result.white_counts[mid3], 
+            global_result.white_counts[mid4]);
 
         // Send ABI message with True/False
         AbiSendMsgHORIZON_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, condition_met);
