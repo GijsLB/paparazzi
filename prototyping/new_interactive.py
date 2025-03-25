@@ -9,7 +9,7 @@ import matplotlib
 matplotlib.use('TkAgg')  # Use Tkinter backend for GUI compatibility
 
 # Load the image
-image_path = os.path.expanduser("~/paparazzi/prototyping/collected_datasets/Test3_7maart_tapijt/1168049056.jpg")
+image_path = os.path.expanduser("~/Pictures/Screenshots/Screenshot from 2025-03-24 17-40-39.png")
 
 # Read and convert the image
 im = cv2.imread(image_path)
@@ -19,9 +19,18 @@ if im is None:
 im = cv2.cvtColor(im, cv2.COLOR_BGR2YUV)  # Convert to YUV
 
 # Default threshold values
-y_low, y_high = 75, 250
-u_low, u_high = 110, 155
-v_low, v_high = 50, 145
+y_low, y_high = 78, 250
+u_low, u_high = 80, 150
+v_low, v_high = 50, 133
+
+#define Y_MIN 78
+#define Y_MAX 242
+#define U_MIN 79
+#define U_MAX 169
+#define V_MIN 10
+#define V_MAX 205
+
+
 #(75, 250), (110, 155), (50, 145)
  # 0, 80), (0, 200), (0, 150)
 # Function to apply filtering based on slider values
