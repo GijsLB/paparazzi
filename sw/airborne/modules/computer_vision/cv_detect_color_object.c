@@ -17,8 +17,8 @@
 #define V_MAX 133
 
 #define BLOCK_SIZE 5
-#define GRID_ROWS 333
-#define GRID_COLS 333
+#define GRID_ROWS 104
+#define GRID_COLS 48
 
 // Dummy vars (needed for compilation, not used)
 uint8_t cod_lum_min1 = 0, cod_lum_max1 = 255;
@@ -89,6 +89,7 @@ static void process_image(struct image_t *img) {
             int base = y * width * 2;
             uint8_t y_val, u_val, v_val;
 
+            // Corrected YUV calculation
             if (x % 2 == 0) {
                 u_val = buf[base + x * 2 + 0];
                 y_val = buf[base + x * 2 + 1];
@@ -99,6 +100,7 @@ static void process_image(struct image_t *img) {
                 y_val = buf[base + x * 2 + 1];
             }
 
+            // Convert the YUV values to binary using the thresholds
             binary[y * width + x] = (y_val >= Y_MIN && y_val <= Y_MAX &&
                                      u_val >= U_MIN && u_val <= U_MAX &&
                                      v_val >= V_MIN && v_val <= V_MAX) ? 1 : 0;
@@ -204,16 +206,17 @@ void color_object_detector_periodic(void) {
     if (local_result.updated) {
         local_result.updated = false;
 
-        // Check if the four middle values are all greater than 1
+        // Use white_pixel_counts instead of local_result.white_counts
+
         int mid1 = GRID_ROWS / 2 - 2;
         int mid2 = GRID_ROWS / 2 - 1;
         int mid3 = GRID_ROWS / 2;
         int mid4 = GRID_ROWS / 2 + 1;
 
-        bool condition_met = (local_result.white_counts[mid1] > 1 &&
-                               local_result.white_counts[mid2] > 1 &&
-                               local_result.white_counts[mid3] > 1 &&
-                               local_result.white_counts[mid4] > 1);
+        bool condition_met = !(global_result.white_counts[mid1] > 1 &&
+                               global_result.white_counts[mid2] > 1 &&
+                               global_result.white_counts[mid3] > 1 &&
+                               global_result.white_counts[mid4] > 1);
 
         // Send ABI message with True/False
         AbiSendMsgHORIZON_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, condition_met);
