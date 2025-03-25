@@ -9,12 +9,12 @@
 #include <string.h>
 #include "pthread.h"
 
-#define Y_MIN 50
-#define Y_MAX 100
-#define U_MIN 115
-#define U_MAX 155
+#define Y_MIN 78
+#define Y_MAX 242
+#define U_MIN 79
+#define U_MAX 150
 #define V_MIN 50
-#define V_MAX 150
+#define V_MAX 133
 
 #define BLOCK_SIZE 5
 #define GRID_ROWS 333
@@ -204,23 +204,16 @@ void color_object_detector_periodic(void) {
     if (local_result.updated) {
         local_result.updated = false;
 
-        // Use white_pixel_counts instead of local_result.white_counts
+        // Check if the four middle values are all greater than 1
         int mid1 = GRID_ROWS / 2 - 2;
         int mid2 = GRID_ROWS / 2 - 1;
         int mid3 = GRID_ROWS / 2;
         int mid4 = GRID_ROWS / 2 + 1;
 
-        bool condition_met = (global_result.white_counts[mid1] > 1 &&
-                               global_result.white_counts[mid2] > 1 &&
-                               global_result.white_counts[mid3] > 1 &&
-                               global_result.white_counts[mid4] > 1);
-
-        // Debugging: Print values for verification
-        printf("Mid1: %d, Mid2: %d, Mid3: %d, Mid4: %d\n", 
-            global_result.white_counts[mid1], 
-            global_result.white_counts[mid2], 
-            global_result.white_counts[mid3], 
-            global_result.white_counts[mid4]);
+        bool condition_met = (local_result.white_counts[mid1] > 1 &&
+                               local_result.white_counts[mid2] > 1 &&
+                               local_result.white_counts[mid3] > 1 &&
+                               local_result.white_counts[mid4] > 1);
 
         // Send ABI message with True/False
         AbiSendMsgHORIZON_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, condition_met);
