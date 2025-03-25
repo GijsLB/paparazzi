@@ -9,12 +9,12 @@
 #include <string.h>
 #include "pthread.h"
 
-#define Y_MIN 78
-#define Y_MAX 242
-#define U_MIN 79
-#define U_MAX 150
+#define Y_MIN 50
+#define Y_MAX 100
+#define U_MIN 115
+#define U_MAX 155
 #define V_MIN 50
-#define V_MAX 133
+#define V_MAX 150
 
 #define BLOCK_SIZE 5
 #define GRID_ROWS 333
@@ -86,18 +86,22 @@ static void process_image(struct image_t *img) {
     uint8_t *binary = malloc(width * height);
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
-            int idx = (y * width + x) * 2;
-            uint8_t y_val = buf[idx];
-            uint8_t u_val = buf[idx + 1];
-            uint8_t v_val = buf[idx + 3];
+            int base = y * width * 2;
+            uint8_t y_val, u_val, v_val;
 
-            if (y_val >= Y_MIN && y_val <= Y_MAX &&
-                u_val >= U_MIN && u_val <= U_MAX &&
-                v_val >= V_MIN && v_val <= V_MAX) {
-                binary[y * width + x] = 1;
+            if (x % 2 == 0) {
+                u_val = buf[base + x * 2 + 0];
+                y_val = buf[base + x * 2 + 1];
+                v_val = buf[base + x * 2 + 2];
             } else {
-                binary[y * width + x] = 0;
+                u_val = buf[base + x * 2 - 2];
+                v_val = buf[base + x * 2 + 0];
+                y_val = buf[base + x * 2 + 1];
             }
+
+            binary[y * width + x] = (y_val >= Y_MIN && y_val <= Y_MAX &&
+                                     u_val >= U_MIN && u_val <= U_MAX &&
+                                     v_val >= V_MIN && v_val <= V_MAX) ? 1 : 0;
         }
     }
 
@@ -160,13 +164,10 @@ static void process_image(struct image_t *img) {
     global_result.updated = true;
     pthread_mutex_unlock(&mutex);
 
-
-if (frame_counter % 20 == 0) {
-    int idx = (height / 2 * width + width / 2) * 2;
-    printf("Sample YUV at center: Y=%d, U=%d, V=%d\n", buf[idx], buf[idx + 1], buf[idx + 3]);
-}
-
     if (frame_counter % 20 == 0) {
+        int idx = (height / 2 * width + width / 2) * 2;
+        printf("Sample YUV at center: Y=%d, U=%d, V=%d\n", buf[idx], buf[idx + 1], buf[idx + 3]);
+
         printf("White pixel counts per row:\n[");
         for (int i = 0; i < new_height; i++) {
             printf("%d", white_pixel_counts[i]);
