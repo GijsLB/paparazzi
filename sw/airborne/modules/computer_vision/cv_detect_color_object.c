@@ -25,16 +25,13 @@ float min_black = 3;
 #define GRID_ROWS 104
 #define GRID_COLS 48
 
-// Dummy vars (needed for compilation, not used)
-// uint8_t cod_lum_min1 = 0, cod_lum_max1 = 255;
-// uint8_t cod_cb_min1 = 0, cod_cb_max1 = 255;
-// uint8_t cod_cr_min1 = 0, cod_cr_max1 = 255;
-// uint8_t cod_lum_min2 = 0, cod_lum_max2 = 255;
-// uint8_t cod_cb_min2 = 0, cod_cb_max2 = 255;
-// uint8_t cod_cr_min2 = 0, cod_cr_max2 = 255;
-// bool cod_draw1 = false;
-// bool cod_draw2 = false;
-float oa_color_count_frac = 0.18f;
+// to do: remove all DEBUG print statements or make VERBOSE
+// to do: decision logic -> if sides l&r are 0, then small nudge in other direction
+// to do: if center is 0, turn to direction with most white pixels rather than random
+
+
+
+float oa_color_count_frac = 0.18f; //weghalen
 
 static pthread_mutex_t mutex;
 
