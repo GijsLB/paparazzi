@@ -9,26 +9,26 @@
 #include <string.h>
 #include "pthread.h"
 
-#define Y_MIN 78
-#define Y_MAX 242
-#define U_MIN 79
-#define U_MAX 150
-#define V_MIN 50
-#define V_MAX 133
+float y_min = 78, y_max = 242;
+float u_min = 79, u_max = 125;
+float v_min = 10, v_max = 133;
+
+float min_black = 3;
+
 
 #define BLOCK_SIZE 5
 #define GRID_ROWS 104
 #define GRID_COLS 48
 
 // Dummy vars (needed for compilation, not used)
-uint8_t cod_lum_min1 = 0, cod_lum_max1 = 255;
-uint8_t cod_cb_min1 = 0, cod_cb_max1 = 255;
-uint8_t cod_cr_min1 = 0, cod_cr_max1 = 255;
-uint8_t cod_lum_min2 = 0, cod_lum_max2 = 255;
-uint8_t cod_cb_min2 = 0, cod_cb_max2 = 255;
-uint8_t cod_cr_min2 = 0, cod_cr_max2 = 255;
-bool cod_draw1 = false;
-bool cod_draw2 = false;
+// uint8_t cod_lum_min1 = 0, cod_lum_max1 = 255;
+// uint8_t cod_cb_min1 = 0, cod_cb_max1 = 255;
+// uint8_t cod_cr_min1 = 0, cod_cr_max1 = 255;
+// uint8_t cod_lum_min2 = 0, cod_lum_max2 = 255;
+// uint8_t cod_cb_min2 = 0, cod_cb_max2 = 255;
+// uint8_t cod_cr_min2 = 0, cod_cr_max2 = 255;
+// bool cod_draw1 = false;
+// bool cod_draw2 = false;
 float oa_color_count_frac = 0.18f;
 
 static pthread_mutex_t mutex;
@@ -89,7 +89,6 @@ static void process_image(struct image_t *img) {
             int base = y * width * 2;
             uint8_t y_val, u_val, v_val;
 
-            // Corrected YUV calculation
             if (x % 2 == 0) {
                 u_val = buf[base + x * 2 + 0];
                 y_val = buf[base + x * 2 + 1];
@@ -100,10 +99,9 @@ static void process_image(struct image_t *img) {
                 y_val = buf[base + x * 2 + 1];
             }
 
-            // Convert the YUV values to binary using the thresholds
-            binary[y * width + x] = (y_val >= Y_MIN && y_val <= Y_MAX &&
-                                     u_val >= U_MIN && u_val <= U_MAX &&
-                                     v_val >= V_MIN && v_val <= V_MAX) ? 1 : 0;
+            binary[y * width + x] = (y_val >= y_min && y_val <= y_max &&
+                                     u_val >= u_min && u_val <= u_max &&
+                                     v_val >= v_min && v_val <= v_max) ? 1 : 0;
         }
     }
 
@@ -133,17 +131,26 @@ static void process_image(struct image_t *img) {
 
     filter_particles(downscaled, new_width, new_height);
 
+    // Apply MIN_BLACK logic
     for (int i = 0; i < new_height; i++) {
-        int found_black = 0;
+        int consecutive_black = 0;
         for (int j = 0; j < new_width; j++) {
             int idx = (i * new_width + j) * 3;
-            if (downscaled[idx] == 0 && downscaled[idx + 1] == 0 && downscaled[idx + 2] == 0) {
-                found_black = 1;
-            }
-            if (found_black) {
-                downscaled[idx]     = 0;
-                downscaled[idx + 1] = 0;
-                downscaled[idx + 2] = 0;
+            bool is_black = downscaled[idx] == 0 && downscaled[idx + 1] == 0 && downscaled[idx + 2] == 0;
+
+            if (is_black) {
+                consecutive_black++;
+                if (consecutive_black >= min_black) {
+                    for (int k = j; k < new_width; k++) {
+                        int idx2 = (i * new_width + k) * 3;
+                        downscaled[idx2]     = 0;
+                        downscaled[idx2 + 1] = 0;
+                        downscaled[idx2 + 2] = 0;
+                    }
+                    break;
+                }
+            } else {
+                consecutive_black = 0;
             }
         }
     }
@@ -190,6 +197,7 @@ static void process_image(struct image_t *img) {
     free(binary);
     free(downscaled);
 }
+
 
 void color_object_detector_init(void) {
     pthread_mutex_init(&mutex, NULL);
