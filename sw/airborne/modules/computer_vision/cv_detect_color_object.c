@@ -9,9 +9,16 @@
 #include <string.h>
 #include "pthread.h"
 
-float y_min = 78, y_max = 242;
-float u_min = 79, u_max = 125;
-float v_min = 10, v_max = 133;
+// SIMULATION
+// float y_min = 78, y_max = 242;
+// float u_min = 79, u_max = 125;
+// float v_min = 10, v_max = 133;
+
+// REAL
+float y_min = 90, y_max = 210;
+float u_min = 75, u_max = 115;
+float v_min = 69, v_max = 145;
+
 
 float min_black = 3;
 
@@ -201,8 +208,13 @@ static void process_image(struct image_t *img) {
 
 void color_object_detector_init(void) {
     pthread_mutex_init(&mutex, NULL);
+    printf("hier\n");
     memset(&global_result, 0, sizeof(global_result));
+    printf("1 hier\n");
+
     cv_add_to_device(&COLOR_OBJECT_DETECTOR_CAMERA1, process_image, 10, 0);
+    printf("2 hier\n");
+
 }
  
 void color_object_detector_periodic(void) {
