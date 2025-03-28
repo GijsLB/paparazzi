@@ -14,63 +14,34 @@
 // float u_min = 79, u_max = 125;
 // float v_min = 10, v_max = 133;
 
-// REAL
+// REAL ~ obtained using ~/paparazzi/prototyping/new_interactive.py
 float y_min = 90, y_max = 210;
 float u_min = 75, u_max = 115;
 float v_min = 69, v_max = 145;
 
-float min_black = 5;
+float min_black = 5; //
 
-#define BLOCK_SIZE 5
-#define GRID_ROWS 104
-#define GRID_COLS 48
+#define BLOCK_SIZE 5 //size of block for downsizing
+#define GRID_ROWS 104 // number of rows in the downscaled image
+#define GRID_COLS 48  // number of columns in the downscaled image
 
-// to do: remove all DEBUG print statements or make VERBOSE
-// to do: decision logic -> if sides l&r are 0, then small nudge in other direction
-// to do: if center is 0, turn to direction with most white pixels rather than random
-
-
-
-float oa_color_count_frac = 0.18f; //weghalen
+float oa_color_count_frac = 0.18f;
 
 static pthread_mutex_t mutex;
 
-struct row_white_count_t {
-    uint8_t white_counts[GRID_ROWS];
-    bool updated;
+struct row_white_count_t { //
+    uint8_t white_counts[GRID_ROWS]; // number of white pixels in each row
+    bool updated; // flag to indicate if the data has been updated
 };
 static struct row_white_count_t global_result;
 
-static void filter_particles(uint8_t *image_data, int width, int height) {
-    uint8_t *filtered_image = malloc(width * height * 3);
-    memcpy(filtered_image, image_data, width * height * 3);
-
-    for (int i = 0; i < height; i++) {
-        for (int j = 1; j < width - 1; j++) {
-            int idx = (i * width + j) * 3;
-
-            int current_pixel = (image_data[idx] < 128) ? 0 : 1;
-            int opposite_pixel = 1 - current_pixel;
-
-            int left_pixel = (image_data[((i * width + j - 1) * 3)] < 128) ? 0 : 1;
-            int right_pixel = (image_data[((i * width + j + 1) * 3)] < 128) ? 0 : 1;
-
-            int opposite_count = 0;
-            if (left_pixel == opposite_pixel) opposite_count++;
-            if (right_pixel == opposite_pixel) opposite_count++;
-
-            if (opposite_count == 2) {
-                filtered_image[idx]     = (opposite_pixel == 0) ? 0 : 255;
-                filtered_image[idx + 1] = (opposite_pixel == 0) ? 0 : 255;
-                filtered_image[idx + 2] = (opposite_pixel == 0) ? 0 : 255;
-            }
-        }
-    }
-
-    memcpy(image_data, filtered_image, width * height * 3);
-    free(filtered_image);
-}
-
+// Main function to process the image
+// This function is called in a separate thread for each image frame
+// It performs the following steps:
+// 1. Convert the YUV image to a binary image based on color thresholds
+// 2. Downscale the binary image to reduce the size
+// 3. Filter out noisy particles
+// 4. Check for consecutive black pixels in each row and update the result
 static void *process_image(void *arg) {
     struct image_t *img = (struct image_t *)arg;
     int width = img->w;
@@ -80,14 +51,15 @@ static void *process_image(void *arg) {
     int new_width = width / BLOCK_SIZE;
     int new_height = height / BLOCK_SIZE;
 
-    if (new_height > GRID_ROWS) new_height = GRID_ROWS;
+    if (new_height > GRID_ROWS) new_height = GRID_ROWS; // cap to max rows and cols
     if (new_width > GRID_COLS) new_width = GRID_COLS;
 
     static int frame_counter = 0;
-    frame_counter++;
+    frame_counter++; // to make terminal output more readable
 
-    uint8_t *binary = malloc(width * height);
+    uint8_t *binary = malloc(width * height); // mask for binary image
 
+    // Thresholding step: convert YUV to binary
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
             int base = y * width * 2;
@@ -105,33 +77,30 @@ static void *process_image(void *arg) {
 
             binary[y * width + x] = (y_val >= y_min && y_val <= y_max &&
                                      u_val >= u_min && u_val <= u_max &&
-                                     v_val >= v_min && v_val <= v_max) ? 1 : 0;
+                                     v_val >= v_min && v_val <= v_max) ? 1 : 0; 
         }
     }
 
     uint8_t *downscaled = malloc(new_width * new_height * 3);
 
+    // Initialize downscaled image with white pixels
     for (int i = 0; i < new_height; i++) {
         for (int j = 0; j < new_width; j++) {
-            int white_count = 0;
-            for (int yb = i * BLOCK_SIZE; yb < (i + 1) * BLOCK_SIZE; yb++) {
-                for (int xb = j * BLOCK_SIZE; xb < (j + 1) * BLOCK_SIZE; xb++) {
-                    if (binary[yb * width + xb] == 1) {
-                        white_count++;
-                    }
-                }
-            }
+            int center_y = i * BLOCK_SIZE + BLOCK_SIZE / 2;
+            int center_x = j * BLOCK_SIZE + BLOCK_SIZE / 2;
             int idx = (i * new_width + j) * 3;
-            if (white_count > 12) {
-                downscaled[idx] = downscaled[idx + 1] = downscaled[idx + 2] = 255;
+    
+            if (center_y < height && center_x < width && binary[center_y * width + center_x] == 1) {
+                downscaled[idx] = downscaled[idx + 1] = downscaled[idx + 2] = 255; // white
             } else {
-                downscaled[idx] = downscaled[idx + 1] = downscaled[idx + 2] = 0;
+                downscaled[idx] = downscaled[idx + 1] = downscaled[idx + 2] = 0;   // black
             }
         }
     }
-
-    filter_particles(downscaled, new_width, new_height);
-
+    
+    // MIN_BLACK logic: truncate row to black if there are enough consecutive black pixels
+    // this results in a matrix that does not alternate between black and white
+    // this allows us to reduce the matrix to a 1D array of white pixel counts
     for (int i = 0; i < new_height; i++) {
         int consecutive_black = 0;
         for (int j = 0; j < new_width; j++) {
@@ -162,14 +131,16 @@ static void *process_image(void *arg) {
             }
         }
         if (count > 254) count = 254;
-        white_pixel_counts[i] = (uint8_t)count;
+        white_pixel_counts[i] = (uint8_t)count; // the 1D array of white pixel counts
     }
 
+    // Store result in shared struct (thread-safe)
     pthread_mutex_lock(&mutex);
     memcpy(global_result.white_counts, white_pixel_counts, GRID_ROWS);
     global_result.updated = true;
     pthread_mutex_unlock(&mutex);
 
+    // Print the downscaled matrix for debugging
     if (frame_counter % 20 == 0) {
     
         printf("Downscaled matrix:\n");
@@ -181,19 +152,21 @@ static void *process_image(void *arg) {
             printf("\n");
         }
     }
-    
-
     free(binary);
     free(downscaled);
     return NULL;
 }
 
+// Initialization function: sets up mutex and registers image callback
 void color_object_detector_init(void) {
     pthread_mutex_init(&mutex, NULL);
     memset(&global_result, 0, sizeof(global_result));
     cv_add_to_device(&COLOR_OBJECT_DETECTOR_CAMERA1, process_image, 10, 0);
 }
 
+// Called periodically in main loop to use the processed image result
+// Checks if middle 6 rows have enough white pixels, if not we send this to the
+// orange_avoider.c
 void color_object_detector_periodic(void) {
     static struct row_white_count_t local_result;
     pthread_mutex_lock(&mutex);
