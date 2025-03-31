@@ -241,8 +241,6 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
   uint32_t tot_y = 0;
   uint8_t *buffer = img->buf;
 
-  // printf("Does find_object_centroid work? img->w: %d\n", img->w);
-
   // Go through all the pixels
   for (uint16_t y = 0; y < img->h; y++) {
     for (uint16_t x = 0; x < img->w; x ++) {
@@ -305,9 +303,6 @@ uint32_t get_edge_score(struct image_t *img)
   uint8_t height = img->h;
   uint8_t row_stride = 2 * width;
   uint8_t edge_threshold = 100;   // Threshold for when the algorithm counts an edge.
-  // uint32_t edge_arr[height - 2][width - 2];   // Define the edge array 
-
-  // printf("break1");
 
   // Define the kernels
   int8_t G_x[3][3] = {{-1, 0, 1},
@@ -344,13 +339,6 @@ uint32_t get_edge_score(struct image_t *img)
         // Compute Gradient Magnitude: G = sqrt(Gx^2 + Gy^2)
         uint32_t G = sqrt(Gx * Gx + Gy * Gy);
 
-        // Store result in edge array
-        // edge_arr[y - 1][x - 1] = G;
-
-        // printf("break x: %d\n", x);
-        // printf("break y: %d\n", y);
-
-
         // Thresholding: If G is strong enough, count it as an edge
         if (G > edge_threshold) {
           // if (y < height / 3) {
@@ -366,9 +354,8 @@ uint32_t get_edge_score(struct image_t *img)
     
     float_t ratio_param = 0.001;
     float_t edge_ratio = (float_t) edge_count_lower / ((float_t) edge_count_middle + ratio_param);
-    // printf("YYEEEEE: EDGE RATIO: %f\n", edge_ratio);
 
-    if (edge_ratio >= 5.) {
+    if (edge_ratio >= 2.) {
       return 1;   // It is just a carpet
     } else {
       return 2;   // It really is an obstacle
@@ -378,16 +365,9 @@ uint32_t get_edge_score(struct image_t *img)
 void color_object_detector_periodic(void)
 {
   static struct color_object_t local_filters[2];
-  // static struct image_t *current_image = NULL;  // Declare before using it
 
   pthread_mutex_lock(&mutex);
   memcpy(local_filters, global_filters, 2*sizeof(struct color_object_t));
-
-  // // Get last image safely
-  // if (global_image.updated) {
-  //   current_image = global_image.img;
-  //   global_image.updated = false;
-  // }
   pthread_mutex_unlock(&mutex);
 
   if(local_filters[0].updated){
@@ -407,13 +387,4 @@ void color_object_detector_periodic(void)
     AbiSendMsgEDGE_COUNT(EDGE_COUNT_ID, edge_count);
     global_image.updated = false;
   }
-
-  // if (current_image != NULL) {
-  //   uint32_t edge_count = get_edge_score(current_image);
-  //   printf("SEND THE MESSAGE!");
-  //   AbiSendMsgEDGE_COUNT(EDGE_COUNT_ID, edge_count);
-  //   global_image.updated = false;
-  // } else {
-  //     printf("[color_object_detector_periodic] Warning: current_image is NULL!\n");
-  // }
 }
