@@ -60,7 +60,8 @@ Located in: `~/paparazzi/sw/airborne/modules/computer_vision/`
 ## 🧪 Other Strategies (Explored but Not Used in Final)
 
 ### Edge Detection  
-*Implemented by:* **Sean**
+- `~/paparazzi/prototyping/edge_detection.py` 
+- `~/paparazzi/prototyping/edge_detection_sean.c`
 
 ### Optical Flow  
 *Implemented by:* **Harm & Jasper**
