@@ -1,9 +1,10 @@
 #ifndef OPTICALFLOW_AVOIDER_H
 #define OPTICALFLOW_AVOIDER_H
 
-// Externe variabele declaratie
+// External variable declaration
 extern float obstacle_threshold;
-extern float OF_THRESHOLD;
+extern float caution_threshold;
+extern float danger_threshold;
 
 
 void opticalflow_avoider_init(void);
