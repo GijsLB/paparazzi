@@ -80,10 +80,13 @@ To run this module, select the correct configuration:
 This module uses optical flow to detect and avoid obstacles. While not used in the final competition-day flight, it was a valuable part of our exploration phase.
 
 #### Alternative Optical Flow Algorithm
-An initial effort was made to improve this optical flow algorithm because it maneuvers too slowly because of the piece-wise like state transitions. This is located enhanced optical-flow code lives on a separate branch called opticalflow_alternative to avoid conflicts:
+An initial effort was made to improve this optical flow algorithm because it maneuvers too slowly because of the piece-wise like state transitions. This is located enhanced optical-flow code lives on a separate branch called opticalflow_alternative to avoid conflicts. 
 
+After switching to the separate branch and retrieving the additional files, do the following:
+- Run make && make clean
+- Select the correct configuration in the dropdown menu called bebop_mav_course_opticalflow_alternative
 
-
+This should all select the correct files, which can then be built and compiled in paparazzi. However, this needs additional steps till it can be implemented in real-life. 
 
 ---
 
