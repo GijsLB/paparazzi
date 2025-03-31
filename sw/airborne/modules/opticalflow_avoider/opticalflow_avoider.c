@@ -42,7 +42,7 @@
  static float FORWARD_DIST = 1.0f;
  static float TURN_ANGLE   = 45.0f;  // 90°-rotatie als obstakel wordt gedetecteerd
  float obstacle_threshold = 0;
- #define HOVER_TIME_THRESHOLD 3.0f  // Tijd in HOVER voordat vooruit wordt gegaan
+ #define HOVER_TIME_THRESHOLD 1.0f  // Tijd in HOVER voordat vooruit wordt gegaan
  #define FORWARD_THRESHOLD POS_BFP_OF_REAL(0.2f)  // Drempel (in fixed-point eenheden) voor het bereiken van 1 m vooruit
  
  // ======== Global vars ========
@@ -215,7 +215,7 @@ static void of_vector_callback(uint8_t sender_id,
     if (motion_magnitude > 100.0) {
         fprintf(stderr, "[OF] Flow magnitude too high (%.2f), discarding measurement\n", motion_magnitude);
         motion_x = 0;
-        motion_magnitude = 0;
+        motion_magnitude = 100;
     }
 
     fprintf(stderr, "[OF] average fx = %ld, average magnitude (top 5 nonzero |fy|) = %.2f\n",
