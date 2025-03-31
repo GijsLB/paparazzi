@@ -63,8 +63,19 @@ Located in: `~/paparazzi/sw/airborne/modules/computer_vision/`
 - `~/paparazzi/prototyping/edge_detection.py` 
 - `~/paparazzi/prototyping/edge_detection_sean.c`
 
-### Optical Flow  
-*Implemented by:* **Harm & Jasper**
+### 🌀 Optical Flow
+
+Located in: `~/paparazzi/sw/airborne/modules/opticalflow_avoider/`
+
+To run this module, select the correct configuration:
+
+- **Airframe:**  
+  `~/paparazzi/conf/airframe/tudelft/bebop_mav_course_exercise.xml`
+
+- **Flight Plan:**  
+  `~/paparazzi/conf/flight_plans/tudelft/course_mav_course_exercise.xml`
+
+This module uses optical flow to detect and avoid obstacles. While not used in the final competition-day flight, it was a valuable part of our exploration phase.
 
 ---
 
