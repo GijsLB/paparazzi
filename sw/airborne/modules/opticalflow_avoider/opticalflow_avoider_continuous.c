@@ -47,7 +47,7 @@
  #define MAX_CIRCLE_TIME 4.0f             // Maximum time to allow for rotation
 
  #ifndef CAUTION_THRESHOLD
- #define CAUTION_THRESHOLD 35.0f
+ #define CAUTION_THRESHOLD 25.0f
  #endif
  float caution_threshold = CAUTION_THRESHOLD;
  
@@ -504,7 +504,7 @@ static void of_vector_callback(uint8_t sender_id, uint8_t count, int32_t *flow_x
              NavSetWaypointHere(WP_GOAL);
  
              // 2) Turn 180 degrees.
-             of_increase_heading(120.0f);
+             of_increase_heading(150.0f);
  
              // 3) Move forward 0.5 m in the new direction.
              of_move_waypoint_forward(WP_GOAL, 0.6f);
