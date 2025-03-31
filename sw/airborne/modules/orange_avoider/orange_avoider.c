@@ -37,6 +37,7 @@
 #define VERBOSE_PRINT(...)
 #endif
 
+// mention all functions
 static uint8_t moveWaypointForward(uint8_t waypoint, float distanceMeters);
 static uint8_t calculateForwards(struct EnuCoor_i *new_coor, float distanceMeters);
 static uint8_t moveWaypoint(uint8_t waypoint, struct EnuCoor_i *new_coor);
@@ -44,6 +45,7 @@ static uint8_t increase_nav_heading(float incrementDegrees);
 static uint8_t chooseRandomIncrementAvoidance(void);
 bool object_ahead = false;
 
+// define navigation state which has four states
 enum navigation_state_t {
   SAFE,
   OBSTACLE_FOUND,
@@ -68,7 +70,6 @@ const int16_t max_trajectory_confidence = 5; // number of consecutive negative o
  * in different threads. The ABI event is triggered every time new data is sent out, and as such the function
  * defined in this file does not need to be explicitly called, only bound in the init function
  */
-
 
 static abi_event ground_detection_ev;
 static void ground_filter_cb(uint8_t __attribute__((unused)) sender_id, bool detected)
@@ -106,7 +107,7 @@ void orange_avoider_periodic(void)
   if(object_ahead){
     obstacle_free_confidence = 0;
   } else {
-    obstacle_free_confidence = max_trajectory_confidence;  // be more cautious with positive obstacle detections
+    obstacle_free_confidence = max_trajectory_confidence;  // keep flying
   }
 
   // bound obstacle_free_confidence
