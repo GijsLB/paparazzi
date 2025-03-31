@@ -1,86 +1,67 @@
-# MAIN README
+# AE4317 Autonomous Flight of Micro Air Vehicles (2024/25 Q3)  
+### Group 1 – Final Submission
 
-Paparazzi UAS
-=============
-[![Build Status](https://paparazziuav.semaphoreci.com/badges/paparazzi/branches/master.svg?style=shields&key=d3a59143-a357-434e-89b8-057f15ed8dd2)](https://paparazziuav.semaphoreci.com/projects/paparazzi) [![Gitter chat](https://badges.gitter.im/paparazzi/discuss.svg)](https://gitter.im/paparazzi/discuss)
-<a href="https://scan.coverity.com/projects/paparazzi-paparazzi">
-  <img alt="Coverity Scan Build Status"
-       src="https://scan.coverity.com/projects/4928/badge.svg"/>
-</a>
+This repository is the result of the **AE4317 Autonomous Flight of Micro Air Vehicles** course, where **Group 1** successfully designed an autonomous MAV capable of flying through an obstacle course.
 
-Paparazzi is a free open source software package for Unmanned (Air) Vehicle Systems.
-For many years, the system has been used successfuly by hobbyists, universities and companies all over the world, on vehicles of various sizes (11.9g to 25kg).
-Paparazzi supports fixed wing, rotorcraft, hybrids, flapping vehicles and it is even possible to use it for boats and surface vehicles.
+Throughout the course, we explored multiple perception strategies, including:
 
-Documentation is available here https://paparazzi-uav.readthedocs.io/en/latest/
+- **Edge Detection**
+- **Optical Flow**
+- **Horizon Detection using YUV Filtering**
 
-More docs is also available on the wiki http://wiki.paparazziuav.org
+The final competition-day implementation used **YUV-based horizon detection**, though each strategy contributed to our learning and development. While the final code doesn't reflect all our efforts, this `README` highlights key files and folders that document our progress and experiments.
 
-To get in touch, subscribe to the mailing list [paparazzi-devel@nongnu.org] (http://savannah.nongnu.org/mail/?group=paparazzi), the IRC channel (freenode, #paparazzi) and Gitter (https://gitter.im/paparazzi/discuss).
+---
 
-Required software
------------------
+## 🔬 Prototyping Efforts
 
-Instructions for installation can be found on the wiki (http://wiki.paparazziuav.org/wiki/Installation).
+Most of our experimentation and development happened in: `~/paparazzi/prototyping/`
 
-Quick start:
+This folder contains various Python scripts showcasing our perception pipeline development.
 
-```
-git clone https://github.com/paparazzi/paparazzi.git
-cd ./paparazzi
-./install.sh
-```
+### Noteworthy Files:
 
+- `new_interactive.py`  
+  Interactive YUV filter tool for fine-tuning thresholds on any image.
 
+- `image_label_tester.py`  
+  Tool to generate labeled datasets for training classifiers (used during our decision tree experiments).
 
-For Ubuntu users, required packages are available in the [paparazzi-uav PPA] (https://launchpad.net/~paparazzi-uav/+archive/ppa),
-Debian users can use the [OpenSUSE Build Service repository] (http://download.opensuse.org/repositories/home:/flixr:/paparazzi-uav/Debian_7.0/)
+- `decision_logic/no_paspoes.py`  
+  Our final **Python-based perception logic**. The corresponding C implementation contains important adaptations.
 
-Debian/Ubuntu packages:
-- **paparazzi-dev** is the meta-package on which the Paparazzi software depends to compile and run the ground segment and simulator.
-- **paparazzi-jsbsim** is needed for using JSBSim as flight dynamics model for the simulator.
+---
 
-Recommended cross compiling toolchain: https://launchpad.net/gcc-arm-embedded
+## 🌅 Horizon Detection using YUV Filter
+
+Located in: `~/paparazzi/sw/airborne/modules/computer_vision/`
 
 
-Directories quick and dirty description:
-----------------------------------------
+### Key Files:
 
-_conf_: the configuration directory (airframe, radio, ... descriptions).
+- `cv_detect_color_object.c`  
+  Core of the YUV color filtering algorithm.
 
-_data_: where to put read-only data (e.g. maps, terrain elevation files, icons)
+- `orange_avoider.c`  
+  Steering logic based on filtered regions (adapted from the standard module).
 
-_doc_: documentation (diagrams, manual source files, ...)
+### Supporting Config Files:
 
-_sw_: software (onboard, ground station, simulation, ...)
+- `~/paparazzi/conf/flight_plans/tudelft/course_orangeavoid_cyberzoo.xml`
+- `~/paparazzi/conf/bebop_course_orangeavoid.xml`
 
-_var_: products of compilation, cache for the map tiles, ...
+> ⚠️ We **did not** create a new module, but chose to **adapt the existing Orange Avoider module** to suit our final perception logic.
 
+---
 
-Compilation and demo simulation
--------------------------------
+## 🧪 Other Strategies (Explored but Not Used in Final)
 
-1. type "make" in the top directory to compile all the libraries and tools.
+### Edge Detection  
+*Implemented by:* **Sean**
 
-2. "./paparazzi" to run the Paparazzi Center
+### Optical Flow  
+*Implemented by:* **Harm & Jasper**
 
-3. Select the "Bixler" aircraft in the upper-left A/C combo box.
-  Select "sim" from upper-middle "target" combo box. Click "Build".
-  When the compilation is finished, select "Simulation" in Operation tab and click "Start Session".
+---
 
-4. In the GCS, wait about 10s for the aircraft to be in the "Holding point" navigation block.
-  Switch to the "Takeoff" block (lower-left blue airway button in the strip).
-  Takeoff with the green launch button.
-
-Uploading the embedded software
-----------------------------------
-
-1. Power the flight controller board while it is connected to the PC with the USB cable.
-
-2. From the Paparazzi center, select the "ap" target, and click "Upload".
-
-
-Flight
-------
-
-1.  From the Paparazzi Center, select the flight session and ... do the same as in simulation !
+We hope this README gives proper credit to the effort that went into the various ideas and experiments throughout the course.
