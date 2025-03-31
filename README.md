@@ -65,6 +65,8 @@ Located in: `~/paparazzi/sw/airborne/modules/computer_vision/`
 
 ### 🌀 Optical Flow
 
+*A custom module was created for this method:* `opticalflow_avoider`
+
 Located in: `~/paparazzi/sw/airborne/modules/opticalflow_avoider/`
 
 To run this module, select the correct configuration:
