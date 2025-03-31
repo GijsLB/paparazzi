@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 # ======================
 # CONFIGURABLE VARIABLES
 # ======================
-NUM_COLUMNS = 100
-NUM_BLOCKS_PER_COLUMN = 40
+NUM_COLUMNS = 85 #520
+NUM_BLOCKS_PER_COLUMN = 40 #240
 THRESH_OBSTACLE = 0.4
 
 # Suppose you want the threshold line at 50% image height
@@ -18,15 +18,17 @@ HEIGHT_TRANSITION_FRACTION = 0.3
 # “Lenient” vs. “Strict” sets
 # lenient => we use small X_WHITE (so fewer whites required) & large Y_BLACK
 X_WHITE_LENIENT = 1
-Y_BLACK_LENIENT = 11
+Y_BLACK_LENIENT = 8
 
 # strict => bigger X_WHITE, smaller Y_BLACK
 X_WHITE_STRICT = 1
-Y_BLACK_STRICT = 3
+Y_BLACK_STRICT = Y_BLACK_LENIENT
 
 # Define image paths
 image_name = "1284881463.jpg"
 image_name = "1231615251.jpg"
+# image_name = "1169949043.jpg"
+
 input_dir = os.path.expanduser("~/paparazzi/prototyping/collected_datasets/Test3_7maart_tapijt")
 image_path = os.path.join(input_dir, image_name)
 
@@ -51,23 +53,20 @@ def apply_green_filter(image, y_range, u_range, v_range):
 
 green_filtered = apply_green_filter(image_yuv, *green_filter)
 
-# Rotate images counterclockwise
 image = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
 green_filtered = cv2.rotate(green_filtered, cv2.ROTATE_90_COUNTERCLOCKWISE)
 
-# Morphological closing
 kernel = np.ones((5,5), np.uint8)
 image_closed = cv2.morphologyEx(green_filtered, cv2.MORPH_CLOSE, kernel)
 
-# Segmentation
 height, width = image_closed.shape
 column_width  = width // NUM_COLUMNS
 block_height  = height // NUM_BLOCKS_PER_COLUMN
 
-transition_line = HEIGHT_TRANSITION_FRACTION * height  # e.g. 0.5 * height
+transition_line = HEIGHT_TRANSITION_FRACTION * height
 
-# Compute whiteness per block
 whiteness_matrix = np.zeros((NUM_COLUMNS, NUM_BLOCKS_PER_COLUMN))
+was_flipped = np.zeros_like(whiteness_matrix, dtype=bool)
 for col in range(NUM_COLUMNS):
     for blk in range(NUM_BLOCKS_PER_COLUMN):
         x_start = col * column_width
@@ -77,7 +76,6 @@ for col in range(NUM_COLUMNS):
         block_region = image_closed[y_start:y_end, x_start:x_end]
         whiteness_matrix[col, blk] = np.sum(block_region) / (255.0 * block_region.size)
 
-# Bottom-up logic with one-time switch from lenient to strict
 adjusted_whiteness_matrix = whiteness_matrix.copy()
 filtered_image = cv2.cvtColor(image_closed, cv2.COLOR_GRAY2BGR)
 
@@ -86,24 +84,17 @@ for col in range(NUM_COLUMNS):
     consecutive_black = 0
     consecutive_white = 0
     black_run_indices = []
-
-    # We start each column in “lenient” mode
     in_strict_mode = False
 
     for blk in reversed(range(NUM_BLOCKS_PER_COLUMN)):
         if locked:
-            # Once locked, everything above forced black
             adjusted_whiteness_matrix[col, blk] = 0
             continue
-        
-        # 1) Check if we should switch to strict mode
+
         block_center_y = (blk + 0.5) * block_height
         if (not in_strict_mode) and (block_center_y < transition_line):
-            # The moment we encounter a block whose center is above the threshold line,
-            # we set in_strict_mode = True for all subsequent blocks (no reset of counters)
             in_strict_mode = True
 
-        # 2) Pick the X/Y for this row
         if in_strict_mode:
             X_WHITE_TILES = X_WHITE_STRICT
             Y_BLACK_TILES = Y_BLACK_STRICT
@@ -111,7 +102,6 @@ for col in range(NUM_COLUMNS):
             X_WHITE_TILES = X_WHITE_LENIENT
             Y_BLACK_TILES = Y_BLACK_LENIENT
 
-        # 3) Now do the usual bottom-up logic
         is_black_tile = (whiteness_matrix[col, blk] < THRESH_OBSTACLE)
         if is_black_tile:
             black_run_indices.append(blk)
@@ -123,28 +113,25 @@ for col in range(NUM_COLUMNS):
                 for b_idx in black_run_indices:
                     adjusted_whiteness_matrix[col, b_idx] = 0
                 black_run_indices.clear()
-
         else:
             consecutive_white += 1
             black_run_indices.append(blk)
 
             if consecutive_white >= X_WHITE_TILES:
-                # Flip run to white
                 for b_idx in black_run_indices:
                     adjusted_whiteness_matrix[col, b_idx] = 1
+                    if whiteness_matrix[col, b_idx] < THRESH_OBSTACLE:
+                        was_flipped[col, b_idx] = True  # mark flipped black→white
                 black_run_indices.clear()
                 consecutive_black = 0
                 consecutive_white = 0
             else:
-                # Not enough whites => keep them black
                 for b_idx in black_run_indices:
                     adjusted_whiteness_matrix[col, b_idx] = 0
 
-    # leftover => black
     for b_idx in black_run_indices:
         adjusted_whiteness_matrix[col, b_idx] = 0
 
-# Overlay
 for col in range(NUM_COLUMNS):
     for blk in range(NUM_BLOCKS_PER_COLUMN):
         x_start = col * column_width
@@ -154,23 +141,24 @@ for col in range(NUM_COLUMNS):
         overlay = filtered_image.copy()
 
         if adjusted_whiteness_matrix[col, blk] == 1:
-            overlay[y_start:y_end, x_start:x_end] = (0,255,0)
+            if was_flipped[col, blk]:
+                overlay[y_start:y_end, x_start:x_end] = (0, 100, 0)  # dark green for flipped
+            else:
+                overlay[y_start:y_end, x_start:x_end] = (0, 255, 0)  # normal green
         else:
             if whiteness_matrix[col, blk] < THRESH_OBSTACLE:
                 overlay[y_start:y_end, x_start:x_end] = (0,0,0)
             else:
                 overlay[y_start:y_end, x_start:x_end] = (0,0,255)
         
-        cv2.addWeighted(overlay, 0.7, filtered_image, 0.3, 0, filtered_image)
+        filtered_image = overlay.copy()
 
-# For debugging
-whiteness_array = 1 - np.mean(whiteness_matrix, axis=1)
-adjusted_whiteness = 1 - np.mean(adjusted_whiteness_matrix, axis=1)
+whiteness_array = np.sum(whiteness_matrix, axis=1).astype(int)
+adjusted_whiteness = np.sum(adjusted_whiteness_matrix, axis=1).astype(int)
 
 print("Original Whiteness Array:", whiteness_array)
 print("Adjusted Whiteness Array:", adjusted_whiteness)
 
-# Visualization
 fig, axes = plt.subplots(3, 1, figsize=(10,15))
 
 axes[0].imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
@@ -180,7 +168,8 @@ axes[1].imshow(green_filtered, cmap="gray")
 axes[1].set_title("Green Filtered")
 
 axes[2].imshow(cv2.cvtColor(filtered_image, cv2.COLOR_BGR2RGB))
-axes[2].set_title("Refined (Lenient -> Strict No Reset)")
+axes[2].set_title("Refined (Dark Green = Reclassified from Black)")
 
 plt.tight_layout()
 plt.show()
+

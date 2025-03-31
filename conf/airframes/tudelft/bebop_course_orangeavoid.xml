@@ -52,6 +52,7 @@
 
     <module name="logger_file"/>
 
+
     <!-- Video/Camera modules -->
     <module name="bebop_cam"/>
     <!--module name="bebop_ae_awb">

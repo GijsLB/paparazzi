@@ -30,7 +30,15 @@
   <settings>
     <dl_settings>
       <dl_settings name="ColorObjectDetector">
-         <dl_setting var="cod_lum_min1" min="0" step="1" max="255" shortname="y_min1"/>
+          <dl_setting var="y_min" min="0" step="1" max="255" shortname="y_min"/>
+          <dl_setting var="y_max" min="0" step="1" max="255" shortname="y_max"/>
+          <dl_setting var="u_min" min="0" step="1" max="255" shortname="u_min"/>
+          <dl_setting var="u_max" min="0" step="1" max="255" shortname="u_max"/>
+          <dl_setting var="v_min" min="0" step="1" max="255" shortname="v_min"/>
+          <dl_setting var="v_max" min="0" step="1" max="255" shortname="v_max"/>
+          <dl_setting var="min_black" min="1" step="1" max="20" shortname="min_black"/>
+
+         <!-- <dl_setting var="cod_lum_min1" min="0" step="1" max="255" shortname="y_min1"/>
          <dl_setting var="cod_lum_max1" min="0" step="1" max="255" shortname="y_max1"/>
          <dl_setting var="cod_cb_min1"   min="0" step="1" max="255" shortname="u_min1"/>
          <dl_setting var="cod_cb_max1"   min="0" step="1" max="255" shortname="u_max1"/>
@@ -43,7 +51,7 @@
          <dl_setting var="cod_cb_max2"   min="0" step="1" max="255" shortname="u_max2"/>
          <dl_setting var="cod_cr_min2"   min="0" step="1" max="255" shortname="v_min2"/>
          <dl_setting var="cod_cr_max2"   min="0" step="1" max="255" shortname="v_max2"/>
-         <dl_setting var="cod_draw2"  min="0" step="1" max="1" values="False|True" shortname="draw 2" />
+         <dl_setting var="cod_draw2"  min="0" step="1" max="1" values="False|True" shortname="draw 2" /> -->
       </dl_settings>
     </dl_settings>
   </settings>

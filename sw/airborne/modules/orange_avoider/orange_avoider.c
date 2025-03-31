@@ -28,7 +28,7 @@
 #define NAV_C // needed to get the nav functions like Inside...
 #include "generated/flight_plan.h"
 
-#define ORANGE_AVOIDER_VERBOSE TRUE
+#define ORANGE_AVOIDER_VERBOSE FALSE
 
 #define PRINT(string,...) fprintf(stderr, "[orange_avoider->%s()] " string,__FUNCTION__ , ##__VA_ARGS__)
 #if ORANGE_AVOIDER_VERBOSE
@@ -37,12 +37,15 @@
 #define VERBOSE_PRINT(...)
 #endif
 
+// mention all functions
 static uint8_t moveWaypointForward(uint8_t waypoint, float distanceMeters);
 static uint8_t calculateForwards(struct EnuCoor_i *new_coor, float distanceMeters);
 static uint8_t moveWaypoint(uint8_t waypoint, struct EnuCoor_i *new_coor);
 static uint8_t increase_nav_heading(float incrementDegrees);
 static uint8_t chooseRandomIncrementAvoidance(void);
+bool object_ahead = false;
 
+// define navigation state which has four states
 enum navigation_state_t {
   SAFE,
   OBSTACLE_FOUND,
@@ -50,8 +53,6 @@ enum navigation_state_t {
   OUT_OF_BOUNDS
   };
 
-// define settings
-float oa_color_count_frac = 0.18f;
 
 // define and initialise global variables
 enum navigation_state_t navigation_state = SEARCH_FOR_SAFE_HEADING;
@@ -69,16 +70,11 @@ const int16_t max_trajectory_confidence = 5; // number of consecutive negative o
  * in different threads. The ABI event is triggered every time new data is sent out, and as such the function
  * defined in this file does not need to be explicitly called, only bound in the init function
  */
-#ifndef ORANGE_AVOIDER_VISUAL_DETECTION_ID
-#define ORANGE_AVOIDER_VISUAL_DETECTION_ID ABI_BROADCAST
-#endif
-static abi_event color_detection_ev;
-static void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
-                               int16_t __attribute__((unused)) pixel_x, int16_t __attribute__((unused)) pixel_y,
-                               int16_t __attribute__((unused)) pixel_width, int16_t __attribute__((unused)) pixel_height,
-                               int32_t quality, int16_t __attribute__((unused)) extra)
+
+static abi_event ground_detection_ev;
+static void ground_filter_cb(uint8_t __attribute__((unused)) sender_id, bool detected)
 {
-  color_count = quality;
+  object_ahead = detected;
 }
 
 /*
@@ -90,8 +86,8 @@ void orange_avoider_init(void)
   srand(time(NULL));
   chooseRandomIncrementAvoidance();
 
-  // bind our colorfilter callbacks to receive the color filter outputs
-  AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &color_detection_ev, color_detection_cb);
+  // bind the groundfilter callbacks to receive the ground filter outputs
+  AbiBindMsgHORIZON_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &ground_detection_ev, ground_filter_cb);
 }
 
 /*
@@ -104,22 +100,20 @@ void orange_avoider_periodic(void)
     return;
   }
 
-  // compute current color thresholds
-  int32_t color_count_threshold = oa_color_count_frac * front_camera.output_size.w * front_camera.output_size.h;
 
-  VERBOSE_PRINT("Color_count: %d  threshold: %d state: %d \n", color_count, color_count_threshold, navigation_state);
+  VERBOSE_PRINT("Object in front: %d \n", object_ahead);
 
   // update our safe confidence using color threshold
-  if(color_count < color_count_threshold){
-    obstacle_free_confidence++;
+  if(object_ahead){
+    obstacle_free_confidence = 0;
   } else {
-    obstacle_free_confidence -= 2;  // be more cautious with positive obstacle detections
+    obstacle_free_confidence = max_trajectory_confidence;  // keep flying
   }
 
   // bound obstacle_free_confidence
   Bound(obstacle_free_confidence, 0, max_trajectory_confidence);
 
-  float moveDistance = fminf(maxDistance, 0.2f * obstacle_free_confidence);
+  float moveDistance = fminf(maxDistance, 0.5f * obstacle_free_confidence);
 
   switch (navigation_state){
     case SAFE:

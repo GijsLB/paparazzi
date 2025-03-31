@@ -1,0 +1,28 @@
+<!DOCTYPE module SYSTEM "module.dtd">
+
+<module name="opticalflow_avoider">
+  <doc>
+    <description>
+      Optical Flow Avoider - ontwijkt obstakels met Optical Flow.
+    </description>
+  </doc>
+
+  <settings>
+    <dl_settings>
+      <dl_settings name="OpticalFlowAvoider">
+         <dl_setting var="OF_THRESHOLD" min="0" step="1" max="50.0"/>
+      </dl_settings>
+    </dl_settings>
+  </settings>
+
+  <header>
+    <file name="opticalflow_avoider.h"/>
+  </header>
+
+  <init fun="opticalflow_avoider_init()"/>
+  <periodic fun="opticalflow_avoider_periodic()" freq="4"/>
+
+  <makefile target="ap|nps">
+    <file name="opticalflow_avoider.c"/>
+  </makefile>
+</module>

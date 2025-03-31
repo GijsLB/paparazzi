@@ -32,22 +32,30 @@
 #include <stdbool.h>
 
 // Module settings
-extern uint8_t cod_lum_min1;
-extern uint8_t cod_lum_max1;
-extern uint8_t cod_cb_min1;
-extern uint8_t cod_cb_max1;
-extern uint8_t cod_cr_min1;
-extern uint8_t cod_cr_max1;
+// extern uint8_t cod_lum_min1;
+// extern uint8_t cod_lum_max1;
+// extern uint8_t cod_cb_min1;
+// extern uint8_t cod_cb_max1;
+// extern uint8_t cod_cr_min1;
+// extern uint8_t cod_cr_max1;
 
-extern uint8_t cod_lum_min2;
-extern uint8_t cod_lum_max2;
-extern uint8_t cod_cb_min2;
-extern uint8_t cod_cb_max2;
-extern uint8_t cod_cr_min2;
-extern uint8_t cod_cr_max2;
+// extern uint8_t cod_lum_min2;
+// extern uint8_t cod_lum_max2;
+// extern uint8_t cod_cb_min2;
+// extern uint8_t cod_cb_max2;
+// extern uint8_t cod_cr_min2;
+// extern uint8_t cod_cr_max2;
 
-extern bool cod_draw1;
-extern bool cod_draw2;
+extern float y_min;
+extern float y_max;
+extern float u_min;
+extern float u_max;
+extern float v_min;
+extern float v_max;
+extern float min_black;
+
+// extern bool cod_draw1;
+// extern bool cod_draw2;
 
 // Module functions
 extern void color_object_detector_init(void);

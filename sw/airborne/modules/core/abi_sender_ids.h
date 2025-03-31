@@ -629,6 +629,13 @@
 #endif
 
 /*
+* ID for EDGE_COUNT
+*/
+#ifndef EDGE_COUNT_ID
+#define EDGE_COUNT_ID 35 // Approach Moving Target
+#endif
+
+/*
  * IDs of VEL_SP senders
  */
 
@@ -636,13 +643,18 @@
 #define VEL_SP_FCR_ID 1 // Approach Moving Target
 #endif
 
-
 /*
  * IDs of LIDAR_DATA senders
  */
 #ifndef LIDAR_DATA_VL53L5CX_ID
 #define LIDAR_DATA_VL53L5CX_ID 1
 #endif
+
+
+#ifndef OPTICAL_FLOW_CALCULATOR_ID
+#define OPTICAL_FLOW_CALCULATOR_ID  44
+#endif
+
 
 
 #endif /* ABI_SENDER_IDS_H */

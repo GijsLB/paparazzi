@@ -3,25 +3,20 @@
 <module name="mav_course_exercise">
   <doc>
     <description>
-    Exercise module for Autonomous Flight of MAV Course
+      Exercise module for Autonomous Flight of MAV Course
     </description>
   </doc>
 
-  <depends>cv_detect_color_object</depends>
-  <!-- TODO Specify header, init, periodic, makefile sections  -->
-  <!-- Include the module header file -->
   <header>
     <file name="mav_course_exercise.h"/>
   </header>
 
-  <!-- Initialization function (runs at startup) -->
   <init fun="mav_course_exercise_init()"/>
 
-  <!-- Periodic function (runs at a set frequency) -->
   <periodic fun="mav_course_exercise_periodic()" freq="4"/>
 
-  <!-- Specifies the source file to compile -->
   <makefile>
+    <define name="MODNAME_DEPENDS" value="cv_opticflow"/>
     <file name="mav_course_exercise.c"/>
   </makefile>
 </module>

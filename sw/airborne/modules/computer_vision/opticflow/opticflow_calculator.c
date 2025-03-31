@@ -25,7 +25,7 @@
  * @brief Estimate velocity from optic flow.
  *
  */
-
+#include "abi_messages.h"  // Voeg dit bovenaan toe
 #include "std.h"
 
 #include <stdio.h>
@@ -49,7 +49,7 @@
 
 // to get the definition of front_camera / bottom_camera
 #include BOARD_CONFIG
-
+#define MAX_COUNT 20  // of bovenin het bestand
 // whether to show the flow and corners:
 #define OPTICFLOW_SHOW_CORNERS 0
 
@@ -354,7 +354,7 @@ PRINT_CONFIG_VAR(OPTICFLOW_ACTFAST_MIN_GRADIENT_CAMERA2)
 // Tracking back flow to make the accepted flow vectors more robust:
 // Default is false, as it does take extra processing time
 #ifndef OPTICFLOW_TRACK_BACK
-#define OPTICFLOW_TRACK_BACK FALSE
+#define OPTICFLOW_TRACK_BACK TRUE
 #endif
 
 #ifndef OPTICFLOW_TRACK_BACK_CAMERA2
@@ -366,7 +366,7 @@ PRINT_CONFIG_VAR(OPTICFLOW_TRACK_BACK_CAMERA2)
 // Whether to draw the flow on the image:
 // False by default, since it changes the image and costs time.
 #ifndef OPTICFLOW_SHOW_FLOW
-#define OPTICFLOW_SHOW_FLOW FALSE
+#define OPTICFLOW_SHOW_FLOW TRUE
 #endif
 
 #ifndef OPTICFLOW_SHOW_FLOW_CAMERA2
@@ -612,6 +612,52 @@ bool calc_fast9_lukas_kanade(struct opticflow_t *opticflow, struct image_t *img,
                                        opticflow->window_size / 2, opticflow->subpixel_factor, opticflow->max_iterations,
                                        opticflow->threshold_vec, opticflow->max_track_corners, opticflow->pyramid_level, keep_bad_points);
 
+//   // Log alle flow vectoren om te zien of we meerdere waarden krijgen
+//   fprintf(stderr, "[OF DEBUG] Tracked vectors count: %d\n", result->tracked_cnt);
+//   for (int i = 0; i < result->tracked_cnt; i++) {
+//       fprintf(stderr, "[OF DEBUG] Vector %d: Pos(%d, %d) -> Flow(%d, %d)\n",
+//               i, vectors[i].pos.x, vectors[i].pos.y, vectors[i].flow_x, vectors[i].flow_y);
+// }
+
+  // int32_t fx[20], fy[20];
+
+  // for (int i=0; i<20; i++) {
+  //   if (i<result->tracked_cnt) {
+  //     fx[i] = vectors[i].flow_x;
+  //     fy[i] = vectors[i].flow_y;
+  //   } else {
+  //     fx[i] = 0;
+  //     fy[i] = 0;
+  //   }
+  // }
+  // uint8_t count = result->tracked_cnt;
+  // if (count > 20) count=20;
+
+  // // AbiSendMsgOPTICAL_FLOW_VECTORS(OPTICAL_FLOW_CALCULATOR_ID, count,
+  // //   fx[0],fy[0], fx[1],fy[1], fx[2],fy[2], fx[3],fy[3], fx[4],fy[4],
+  // //   fx[5],fy[5], fx[6],fy[6], fx[7],fy[7], fx[8],fy[8], fx[9],fy[9]
+  // // );
+
+  // // Stel count <= 10
+  // int32_t flow_xy[2 * MAX_COUNT]; // of dynamic alloc, of wat je wilt
+  // for (uint8_t i = 0; i < count; i++) {
+  //   flow_xy[2*i    ] = fx[i];
+  //   flow_xy[2*i + 1] = fy[i];
+  // }
+
+  // // Nu roep je de 'AbiSendMsg...' aan met 3 parameters:
+  // //   1) sender_id
+  // //   2) count
+  // //   3) pointer naar flow_xy
+  // AbiSendMsgOPTICAL_FLOW_VECTORS(
+  //   OPTICAL_FLOW_CALCULATOR_ID,
+  //   count,
+  //   flow_xy
+  // );
+
+
+
+
 
   if (opticflow->track_back) {
     // TODO: Watch out!
@@ -781,6 +827,48 @@ bool calc_fast9_lukas_kanade(struct opticflow_t *opticflow, struct image_t *img,
           result->flow_der_y = (vectors[result->tracked_cnt / 2 - 1].flow_y + vectors[result->tracked_cnt / 2].flow_y) / 2.f;
         }
       }
+
+
+      int32_t fx[20], fy[20];
+
+      for (int i=0; i<20; i++) {
+        if (i<result->tracked_cnt) {
+          fx[i] = vectors[i].flow_x;
+          fy[i] = vectors[i].flow_y;
+        } else {
+          fx[i] = 0;
+          fy[i] = 0;
+        }
+      }
+      uint8_t count = result->tracked_cnt;
+      if (count > 20) count=20;
+    
+      // AbiSendMsgOPTICAL_FLOW_VECTORS(OPTICAL_FLOW_CALCULATOR_ID, count,
+      //   fx[0],fy[0], fx[1],fy[1], fx[2],fy[2], fx[3],fy[3], fx[4],fy[4],
+      //   fx[5],fy[5], fx[6],fy[6], fx[7],fy[7], fx[8],fy[8], fx[9],fy[9]
+      // );
+    
+      // Stel count <= 10
+      int32_t flow_xy[2 * MAX_COUNT]; // of dynamic alloc, of wat je wilt
+      for (uint8_t i = 0; i < count; i++) {
+        flow_xy[2*i    ] = fx[i];
+        flow_xy[2*i + 1] = fy[i];
+      }
+    
+      // Nu roep je de 'AbiSendMsg...' aan met 3 parameters:
+      //   1) sender_id
+      //   2) count
+      //   3) pointer naar flow_xy
+      AbiSendMsgOPTICAL_FLOW_VECTORS(
+        OPTICAL_FLOW_CALCULATOR_ID,
+        count,
+        flow_xy
+      );
+
+
+
+
+
     }
   }
   result->camera_id = opticflow->id;

@@ -1,276 +1,196 @@
-/*
- * Copyright (C) 2019 Kirk Scheper <kirkscheper@gmail.com>
- *
- * This file is part of Paparazzi.
- *
- * Paparazzi is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2, or (at your option)
- * any later version.
- *
- * Paparazzi is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Paparazzi; see the file COPYING.  If not, write to
- * the Free Software Foundation, 59 Temple Place - Suite 330,
- * Boston, MA 02111-1307, USA.
- */
-
-/**
- * @file modules/computer_vision/cv_detect_object.h
- * Assumes the object consists of a continuous color and checks
- * if you are over the defined object or not
- */
-
-// Own header
 #include "modules/computer_vision/cv_detect_color_object.h"
 #include "modules/computer_vision/cv.h"
 #include "modules/core/abi.h"
 #include "std.h"
 
 #include <stdio.h>
-#include <stdbool.h>
-#include <math.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
 #include "pthread.h"
 
-#define PRINT(string,...) fprintf(stderr, "[object_detector->%s()] " string,__FUNCTION__ , ##__VA_ARGS__)
-#if OBJECT_DETECTOR_VERBOSE
-#define VERBOSE_PRINT PRINT
-#else
-#define VERBOSE_PRINT(...)
-#endif
+// SIMULATION
+// float y_min = 78, y_max = 242;
+// float u_min = 79, u_max = 125;
+// float v_min = 10, v_max = 133;
+
+// REAL ~ obtained using ~/paparazzi/prototyping/new_interactive.py
+float y_min = 90, y_max = 210;
+float u_min = 75, u_max = 115;
+float v_min = 69, v_max = 145;
+
+float min_black = 5; //
+
+#define BLOCK_SIZE 5 //size of block for downsizing
+#define GRID_ROWS 104 // number of rows in the downscaled image
+#define GRID_COLS 48  // number of columns in the downscaled image
+
+float oa_color_count_frac = 0.18f;
 
 static pthread_mutex_t mutex;
 
-#ifndef COLOR_OBJECT_DETECTOR_FPS1
-#define COLOR_OBJECT_DETECTOR_FPS1 0 ///< Default FPS (zero means run at camera fps)
-#endif
-#ifndef COLOR_OBJECT_DETECTOR_FPS2
-#define COLOR_OBJECT_DETECTOR_FPS2 0 ///< Default FPS (zero means run at camera fps)
-#endif
-
-// Filter Settings
-uint8_t cod_lum_min1 = 0;
-uint8_t cod_lum_max1 = 0;
-uint8_t cod_cb_min1 = 0;
-uint8_t cod_cb_max1 = 0;
-uint8_t cod_cr_min1 = 0;
-uint8_t cod_cr_max1 = 0;
-
-uint8_t cod_lum_min2 = 0;
-uint8_t cod_lum_max2 = 0;
-uint8_t cod_cb_min2 = 0;
-uint8_t cod_cb_max2 = 0;
-uint8_t cod_cr_min2 = 0;
-uint8_t cod_cr_max2 = 0;
-
-bool cod_draw1 = false;
-bool cod_draw2 = false;
-
-// define global variables
-struct color_object_t {
-  int32_t x_c;
-  int32_t y_c;
-  uint32_t color_count;
-  bool updated;
+struct row_white_count_t { //
+    uint8_t white_counts[GRID_ROWS]; // number of white pixels in each row
+    bool updated; // flag to indicate if the data has been updated
 };
-struct color_object_t global_filters[2];
+static struct row_white_count_t global_result;
 
-// Function
-uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, bool draw,
-                              uint8_t lum_min, uint8_t lum_max,
-                              uint8_t cb_min, uint8_t cb_max,
-                              uint8_t cr_min, uint8_t cr_max);
+// Main function to process the image
+// This function is called in a separate thread for each image frame
+// It performs the following steps:
+// 1. Convert the YUV image to a binary image based on color thresholds
+// 2. Downscale the binary image to reduce the size
+// 3. Filter out noisy particles
+// 4. Check for consecutive black pixels in each row and update the result
+static void *process_image(void *arg) {
+    struct image_t *img = (struct image_t *)arg;
+    int width = img->w;
+    int height = img->h;
+    uint8_t *buf = img->buf;
 
-/*
- * object_detector
- * @param img - input image to process
- * @param filter - which detection filter to process
- * @return img
- */
-static struct image_t *object_detector(struct image_t *img, uint8_t filter)
-{
-  uint8_t lum_min, lum_max;
-  uint8_t cb_min, cb_max;
-  uint8_t cr_min, cr_max;
-  bool draw;
+    int new_width = width / BLOCK_SIZE;
+    int new_height = height / BLOCK_SIZE;
 
-  switch (filter){
-    case 1:
-      lum_min = cod_lum_min1;
-      lum_max = cod_lum_max1;
-      cb_min = cod_cb_min1;
-      cb_max = cod_cb_max1;
-      cr_min = cod_cr_min1;
-      cr_max = cod_cr_max1;
-      draw = cod_draw1;
-      break;
-    case 2:
-      lum_min = cod_lum_min2;
-      lum_max = cod_lum_max2;
-      cb_min = cod_cb_min2;
-      cb_max = cod_cb_max2;
-      cr_min = cod_cr_min2;
-      cr_max = cod_cr_max2;
-      draw = cod_draw2;
-      break;
-    default:
-      return img;
-  };
+    if (new_height > GRID_ROWS) new_height = GRID_ROWS; // cap to max rows and cols
+    if (new_width > GRID_COLS) new_width = GRID_COLS;
 
-  int32_t x_c, y_c;
+    static int frame_counter = 0;
+    frame_counter++; // to make terminal output more readable
 
-  // Filter and find centroid
-  uint32_t count = find_object_centroid(img, &x_c, &y_c, draw, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max);
-  VERBOSE_PRINT("Color count %d: %u, threshold %u, x_c %d, y_c %d\n", camera, object_count, count_threshold, x_c, y_c);
-  VERBOSE_PRINT("centroid %d: (%d, %d) r: %4.2f a: %4.2f\n", camera, x_c, y_c,
-        hypotf(x_c, y_c) / hypotf(img->w * 0.5, img->h * 0.5), RadOfDeg(atan2f(y_c, x_c)));
+    uint8_t *binary = malloc(width * height); // mask for binary image
 
-  pthread_mutex_lock(&mutex);
-  global_filters[filter-1].color_count = count;
-  global_filters[filter-1].x_c = x_c;
-  global_filters[filter-1].y_c = y_c;
-  global_filters[filter-1].updated = true;
-  pthread_mutex_unlock(&mutex);
+    // Thresholding step: convert YUV to binary
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            int base = y * width * 2;
+            uint8_t y_val, u_val, v_val;
 
-  return img;
-}
+            if (x % 2 == 0) {
+                u_val = buf[base + x * 2 + 0];
+                y_val = buf[base + x * 2 + 1];
+                v_val = buf[base + x * 2 + 2];
+            } else {
+                u_val = buf[base + x * 2 - 2];
+                v_val = buf[base + x * 2 + 0];
+                y_val = buf[base + x * 2 + 1];
+            }
 
-struct image_t *object_detector1(struct image_t *img, uint8_t camera_id);
-struct image_t *object_detector1(struct image_t *img, uint8_t camera_id __attribute__((unused)))
-{
-  return object_detector(img, 1);
-}
-
-struct image_t *object_detector2(struct image_t *img, uint8_t camera_id);
-struct image_t *object_detector2(struct image_t *img, uint8_t camera_id __attribute__((unused)))
-{
-  return object_detector(img, 2);
-}
-
-void color_object_detector_init(void)
-{
-  memset(global_filters, 0, 2*sizeof(struct color_object_t));
-  pthread_mutex_init(&mutex, NULL);
-#ifdef COLOR_OBJECT_DETECTOR_CAMERA1
-#ifdef COLOR_OBJECT_DETECTOR_LUM_MIN1
-  cod_lum_min1 = COLOR_OBJECT_DETECTOR_LUM_MIN1;
-  cod_lum_max1 = COLOR_OBJECT_DETECTOR_LUM_MAX1;
-  cod_cb_min1 = COLOR_OBJECT_DETECTOR_CB_MIN1;
-  cod_cb_max1 = COLOR_OBJECT_DETECTOR_CB_MAX1;
-  cod_cr_min1 = COLOR_OBJECT_DETECTOR_CR_MIN1;
-  cod_cr_max1 = COLOR_OBJECT_DETECTOR_CR_MAX1;
-#endif
-#ifdef COLOR_OBJECT_DETECTOR_DRAW1
-  cod_draw1 = COLOR_OBJECT_DETECTOR_DRAW1;
-#endif
-
-  cv_add_to_device(&COLOR_OBJECT_DETECTOR_CAMERA1, object_detector1, COLOR_OBJECT_DETECTOR_FPS1, 0);
-#endif
-
-#ifdef COLOR_OBJECT_DETECTOR_CAMERA2
-#ifdef COLOR_OBJECT_DETECTOR_LUM_MIN2
-  cod_lum_min2 = COLOR_OBJECT_DETECTOR_LUM_MIN2;
-  cod_lum_max2 = COLOR_OBJECT_DETECTOR_LUM_MAX2;
-  cod_cb_min2 = COLOR_OBJECT_DETECTOR_CB_MIN2;
-  cod_cb_max2 = COLOR_OBJECT_DETECTOR_CB_MAX2;
-  cod_cr_min2 = COLOR_OBJECT_DETECTOR_CR_MIN2;
-  cod_cr_max2 = COLOR_OBJECT_DETECTOR_CR_MAX2;
-#endif
-#ifdef COLOR_OBJECT_DETECTOR_DRAW2
-  cod_draw2 = COLOR_OBJECT_DETECTOR_DRAW2;
-#endif
-
-  cv_add_to_device(&COLOR_OBJECT_DETECTOR_CAMERA2, object_detector2, COLOR_OBJECT_DETECTOR_FPS2, 1);
-#endif
-}
-
-/*
- * find_object_centroid
- *
- * Finds the centroid of pixels in an image within filter bounds.
- * Also returns the amount of pixels that satisfy these filter bounds.
- *
- * @param img - input image to process formatted as YUV422.
- * @param p_xc - x coordinate of the centroid of color object
- * @param p_yc - y coordinate of the centroid of color object
- * @param lum_min - minimum y value for the filter in YCbCr colorspace
- * @param lum_max - maximum y value for the filter in YCbCr colorspace
- * @param cb_min - minimum cb value for the filter in YCbCr colorspace
- * @param cb_max - maximum cb value for the filter in YCbCr colorspace
- * @param cr_min - minimum cr value for the filter in YCbCr colorspace
- * @param cr_max - maximum cr value for the filter in YCbCr colorspace
- * @param draw - whether or not to draw on image
- * @return number of pixels of image within the filter bounds.
- */
-uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, bool draw,
-                              uint8_t lum_min, uint8_t lum_max,
-                              uint8_t cb_min, uint8_t cb_max,
-                              uint8_t cr_min, uint8_t cr_max)
-{
-  uint32_t cnt = 0;
-  uint32_t tot_x = 0;
-  uint32_t tot_y = 0;
-  uint8_t *buffer = img->buf;
-
-  // Go through all the pixels
-  for (uint16_t y = 0; y < img->h; y++) {
-    for (uint16_t x = 0; x < img->w; x ++) {
-      // Check if the color is inside the specified values
-      uint8_t *yp, *up, *vp;
-      if (x % 2 == 0) {
-        // Even x
-        up = &buffer[y * 2 * img->w + 2 * x];      // U
-        yp = &buffer[y * 2 * img->w + 2 * x + 1];  // Y1
-        vp = &buffer[y * 2 * img->w + 2 * x + 2];  // V
-        //yp = &buffer[y * 2 * img->w + 2 * x + 3]; // Y2
-      } else {
-        // Uneven x
-        up = &buffer[y * 2 * img->w + 2 * x - 2];  // U
-        //yp = &buffer[y * 2 * img->w + 2 * x - 1]; // Y1
-        vp = &buffer[y * 2 * img->w + 2 * x];      // V
-        yp = &buffer[y * 2 * img->w + 2 * x + 1];  // Y2
-      }
-      if ( (*yp >= lum_min) && (*yp <= lum_max) &&
-           (*up >= cb_min ) && (*up <= cb_max ) &&
-           (*vp >= cr_min ) && (*vp <= cr_max )) {
-        cnt ++;
-        tot_x += x;
-        tot_y += y;
-        if (draw){
-          *yp = 255;  // make pixel brighter in image
+            binary[y * width + x] = (y_val >= y_min && y_val <= y_max &&
+                                     u_val >= u_min && u_val <= u_max &&
+                                     v_val >= v_min && v_val <= v_max) ? 1 : 0; 
         }
-      }
     }
-  }
-  if (cnt > 0) {
-    *p_xc = (int32_t)roundf(tot_x / ((float) cnt) - img->w * 0.5f);
-    *p_yc = (int32_t)roundf(img->h * 0.5f - tot_y / ((float) cnt));
-  } else {
-    *p_xc = 0;
-    *p_yc = 0;
-  }
-  return cnt;
+
+    uint8_t *downscaled = malloc(new_width * new_height * 3);
+
+    // Initialize downscaled image with white pixels
+    for (int i = 0; i < new_height; i++) {
+        for (int j = 0; j < new_width; j++) {
+            int center_y = i * BLOCK_SIZE + BLOCK_SIZE / 2;
+            int center_x = j * BLOCK_SIZE + BLOCK_SIZE / 2;
+            int idx = (i * new_width + j) * 3;
+    
+            if (center_y < height && center_x < width && binary[center_y * width + center_x] == 1) {
+                downscaled[idx] = downscaled[idx + 1] = downscaled[idx + 2] = 255; // white
+            } else {
+                downscaled[idx] = downscaled[idx + 1] = downscaled[idx + 2] = 0;   // black
+            }
+        }
+    }
+    
+    // MIN_BLACK logic: truncate row to black if there are enough consecutive black pixels
+    // this results in a matrix that does not alternate between black and white
+    // this allows us to reduce the matrix to a 1D array of white pixel counts
+    for (int i = 0; i < new_height; i++) {
+        int consecutive_black = 0;
+        for (int j = 0; j < new_width; j++) {
+            int idx = (i * new_width + j) * 3;
+            bool is_black = downscaled[idx] == 0 && downscaled[idx + 1] == 0 && downscaled[idx + 2] == 0;
+            if (is_black) {
+                consecutive_black++;
+                if (consecutive_black >= min_black) {
+                    for (int k = j; k < new_width; k++) {
+                        int idx2 = (i * new_width + k) * 3;
+                        downscaled[idx2] = downscaled[idx2 + 1] = downscaled[idx2 + 2] = 0;
+                    }
+                    break;
+                }
+            } else {
+                consecutive_black = 0;
+            }
+        }
+    }
+
+    uint8_t white_pixel_counts[GRID_ROWS] = {0};
+    for (int i = 0; i < new_height; i++) {
+        int count = 0;
+        for (int j = 0; j < new_width; j++) {
+            int idx = (i * new_width + j) * 3;
+            if (downscaled[idx] == 255 && downscaled[idx + 1] == 255 && downscaled[idx + 2] == 255) {
+                count++;
+            }
+        }
+        if (count > 254) count = 254;
+        white_pixel_counts[i] = (uint8_t)count; // the 1D array of white pixel counts
+    }
+
+    // Store result in shared struct (thread-safe)
+    pthread_mutex_lock(&mutex);
+    memcpy(global_result.white_counts, white_pixel_counts, GRID_ROWS);
+    global_result.updated = true;
+    pthread_mutex_unlock(&mutex);
+
+    // Print the downscaled matrix for debugging
+    if (frame_counter % 20 == 0) {
+    
+        printf("Downscaled matrix:\n");
+        for (int i = 0; i < new_height; i++) {
+            for (int j = 0; j < new_width; j++) {
+                int idx = (i * new_width + j) * 3;
+                printf("%c", downscaled[idx] == 255 ? '#' : '.');
+            }
+            printf("\n");
+        }
+    }
+    free(binary);
+    free(downscaled);
+    return NULL;
 }
 
-void color_object_detector_periodic(void)
-{
-  static struct color_object_t local_filters[2];
-  pthread_mutex_lock(&mutex);
-  memcpy(local_filters, global_filters, 2*sizeof(struct color_object_t));
-  pthread_mutex_unlock(&mutex);
+// Initialization function: sets up mutex and registers image callback
+void color_object_detector_init(void) {
+    pthread_mutex_init(&mutex, NULL);
+    memset(&global_result, 0, sizeof(global_result));
+    cv_add_to_device(&COLOR_OBJECT_DETECTOR_CAMERA1, process_image, 10, 0);
+}
 
-  if(local_filters[0].updated){
-    AbiSendMsgVISUAL_DETECTION(COLOR_OBJECT_DETECTION1_ID, local_filters[0].x_c, local_filters[0].y_c,
-        0, 0, local_filters[0].color_count, 0);
-    local_filters[0].updated = false;
-  }
-  if(local_filters[1].updated){
-    AbiSendMsgVISUAL_DETECTION(COLOR_OBJECT_DETECTION2_ID, local_filters[1].x_c, local_filters[1].y_c,
-        0, 0, local_filters[1].color_count, 1);
-    local_filters[1].updated = false;
-  }
+// Called periodically in main loop to use the processed image result
+// Checks if middle 6 rows have enough white pixels, if not we send this to the
+// orange_avoider.c
+void color_object_detector_periodic(void) {
+    static struct row_white_count_t local_result;
+    pthread_mutex_lock(&mutex);
+    memcpy(&local_result, &global_result, sizeof(struct row_white_count_t));
+    pthread_mutex_unlock(&mutex);
+
+    if (local_result.updated) {
+        local_result.updated = false;
+
+        int mid0 = GRID_ROWS / 2 - 3;
+        int mid1 = GRID_ROWS / 2 - 2;
+        int mid2 = GRID_ROWS / 2 - 1;
+        int mid3 = GRID_ROWS / 2;
+        int mid4 = GRID_ROWS / 2 + 1;
+        int mid5 = GRID_ROWS / 2 + 2;
+
+        bool condition_met = !(global_result.white_counts[mid0] > 1 &&
+                               global_result.white_counts[mid1] > 1 &&
+                               global_result.white_counts[mid2] > 1 &&
+                               global_result.white_counts[mid3] > 1 &&
+                               global_result.white_counts[mid4] > 1 &&
+                               global_result.white_counts[mid5] > 1); 
+
+        printf("[DEBUG] PERIODIC -- condition_met: %d\n", condition_met);
+        AbiSendMsgHORIZON_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, condition_met);
+    }
 }
