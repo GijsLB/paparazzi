@@ -6,21 +6,51 @@ matplotlib.use('TkAgg')  # Force GUI backend
 import matplotlib.pyplot as plt
 
 
-
-def process_image(NUM_COLUMNS, NUM_BLOCKS_PER_COLUMN, HEIGHT_TRANSITION_FRACTION, 
-                  X_WHITE_LENIENT, Y_BLACK_LENIENT, X_WHITE_STRICT, Y_BLACK_STRICT, 
-                  THRESH_OBSTACLE, image_path, widthGT, heightGT, aaa):
-
-
-    # Load the original image
-    image = cv2.imread(image_path)
+def reduce_resolution(image_path, scale_factor_x, scale_factor_y):
+    # Load image
+    image = cv2.imread(image_path, cv2.IMREAD_COLOR)
     if image is None:
-        raise FileNotFoundError(f"Error: Could not load image at {image_path}")
+        raise ValueError("Image not found or unable to load.")
     
+    height, width, _ = image.shape
+    new_height, new_width = height // scale_factor_y, width // scale_factor_x
+    
+    # Downsample by picking center pixels of blocks
+    reduced_image = np.zeros((new_height, new_width, 3), dtype=np.uint8)
+    for i in range(new_height):
+        for j in range(new_width):
+            center_y = i * scale_factor_y + scale_factor_y // 2
+            center_x = j * scale_factor_x + scale_factor_x // 2
+            
+            # Ensure indices are within bounds
+            center_y = min(center_y, height - 1)
+            center_x = min(center_x, width - 1)
+            
+            reduced_image[i, j] = image[center_y, center_x]
+    
+    return reduced_image
 
+
+def process_image(SCALE_F_X, SCALE_F_Y, HEIGHT_TRANSITION_FRACTION, 
+                  X_WHITE_LENIENT, Y_BLACK_LENIENT, X_WHITE_STRICT, Y_BLACK_STRICT, 
+                  THRESH_OBSTACLE, image_path, widthGT, heightGT, Ymin = 90, Ymax = 255, Umin = 75, Umax = 115, Vmin = 69, Vmax = 145):
+
+
+    #NUM_COLUMNS = NUM_COLUMNS // SCALE_F_X
+    #NUM_BLOCKS_PER_COLUMN = NUM_BLOCKS_PER_COLUMN // SCALE_F_Y
+
+    image = reduce_resolution(image_path, SCALE_F_Y, SCALE_F_X)
+    # Load the original image
+    # image = cv2.imread(image_path)
+    # if image is None:
+    #     raise FileNotFoundError(f"Error: Could not load image at {image_path}")
+    
+    NUM_COLUMNS, NUM_BLOCKS_PER_COLUMN, _ = image.shape
     # Convert to YUV and apply green filter
     image_yuv = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
-    green_filter = ((aaa, 210), (75, 115), (69, 145))
+
+    green_filter = ((Ymin, Ymax), (Umin, Umax), (Vmin, Vmax))
+
 
     def apply_green_filter(image, y_range, u_range, v_range):
         mask = (
@@ -63,6 +93,8 @@ def process_image(NUM_COLUMNS, NUM_BLOCKS_PER_COLUMN, HEIGHT_TRANSITION_FRACTION
     # Bottom-up logic with one-time switch from lenient to strict
     adjusted_whiteness_matrix = whiteness_matrix.copy()
     filtered_image = cv2.cvtColor(image_closed, cv2.COLOR_GRAY2BGR)
+
+
 
     for col in range(NUM_COLUMNS):
         locked = False
@@ -135,9 +167,16 @@ def process_image(NUM_COLUMNS, NUM_BLOCKS_PER_COLUMN, HEIGHT_TRANSITION_FRACTION
         (heightGT, widthGT), 
         interpolation=cv2.INTER_NEAREST)
 
+        (heightGT, widthGT), 
+        interpolation=cv2.INTER_NEAREST)
+
 
     
     return resized
+
+# SCALE_F_X = 1
+# SCALE_F_Y = 1
+
 
 # NUM_COLUMNS = 100
 # NUM_BLOCKS_PER_COLUMN = 40
@@ -153,11 +192,13 @@ def process_image(NUM_COLUMNS, NUM_BLOCKS_PER_COLUMN, HEIGHT_TRANSITION_FRACTION
 
 # THRESH_OBSTACLE = 0.4
 
-# image_name = "780418796.jpg"
+# image_name = "919717732.jpg"
 # input_dir = os.path.expanduser("~/paparazzi/prototyping/Groundtruth/testlabel1")
 # image_path = os.path.join(input_dir, image_name)
 
-# whitetest = process_image(NUM_COLUMNS, NUM_BLOCKS_PER_COLUMN, HEIGHT_TRANSITION_FRACTION,
+
+
+# whitetest = process_image(SCALE_F_X, SCALE_F_Y, NUM_COLUMNS, NUM_BLOCKS_PER_COLUMN, HEIGHT_TRANSITION_FRACTION,
 #                                    X_WHITE_LENIENT, Y_BLACK_LENIENT, X_WHITE_STRICT, Y_BLACK_STRICT,
 #                                    THRESH_OBSTACLE, image_path, 360, 720)
 
