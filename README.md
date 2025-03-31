@@ -79,6 +79,12 @@ To run this module, select the correct configuration:
 
 This module uses optical flow to detect and avoid obstacles. While not used in the final competition-day flight, it was a valuable part of our exploration phase.
 
+#### Alternative Optical Flow Algorithm
+An initial effort was made to improve this optical flow algorithm because it maneuvers too slowly because of the piece-wise like state transitions. This is located enhanced optical-flow code lives on a separate branch called opticalflow_alternative to avoid conflicts:
+
+
+
+
 ---
 
 We hope this README gives proper credit to the effort that went into the various ideas and experiments throughout the course.
