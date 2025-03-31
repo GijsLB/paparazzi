@@ -1002,9 +1002,10 @@ bool calc_fast9_lukas_kanade(struct opticflow_t *opticflow, struct image_t *img,
           uint8_t count = result->tracked_cnt;
           if (count > 20) count=20;
         
-          fprintf(stderr, "[OPTICFLOW] Tracked vectors: %d\n", count);
+          // Print each individual optical flow vector value
+          // fprintf(stderr, "[OPTICFLOW] Tracked vectors: %d\n", count);
           for (int i = 0; i < count; i++) {
-            fprintf(stderr, "[OPTICFLOW] Vector %d: flow_x=%d, flow_y=%d\n", i, fx[i], fy[i]);
+            // fprintf(stderr, "[OPTICFLOW] Vector %d: flow_x=%d, flow_y=%d\n", i, fx[i], fy[i]);
           }
         
           // Prepare array for ABI message

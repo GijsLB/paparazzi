@@ -21,8 +21,8 @@
  #define OF_VERBOSE TRUE
  #if OF_VERBOSE
  #define OF_PRINT(fmt, ...) fprintf(stderr, "[OF Avoider->%s()] " fmt, __FUNCTION__, ##__VA_ARGS__)
- #else
- #define OF_PRINT(...) {}
+//  #else
+//  #define OF_PRINT(...) {}
  #endif
  
  // ======== Critical Parameters ========
@@ -246,113 +246,72 @@
  }
  
  /**
-  * New optical flow vector callback:
+  * Optical flow vector callback:
   * Only uses the y component: it stores the absolute values of fy (if nonzero),
   * then sorts them in descending order and averages the top five.
   */
 
-  static void of_vector_callback(uint8_t sender_id, uint8_t count, int32_t *flow_xy) {
-    OF_PRINT("Callback: count=%d, sender_id=%d\n", count, sender_id);
+static void of_vector_callback(uint8_t sender_id, uint8_t count, int32_t *flow_xy) {
+    // --- Compute raw flow magnitudes statistics ---
+    double raw_min = 1e6, raw_max = 0;
+    double sum_magnitudes = 0;
+    for (int i = 0; i < count; i++) {
+        int32_t fx = flow_xy[2 * i];
+        int32_t fy = flow_xy[2 * i + 1];
+        double magnitude = sqrt((double)fx * fx + (double)fy * fy);
+        if (magnitude < raw_min) raw_min = magnitude;
+        if (magnitude > raw_max) raw_max = magnitude;
+        sum_magnitudes += magnitude;
+        // Printing each vector's raw magnitude
+        // OF_PRINT("  i=%d: fx=%ld, fy=%ld, raw magnitude=%.2f\n", i, (long)fx, (long)fy, magnitude);
+    }
+    double raw_avg = sum_magnitudes / count;
+    // OF_PRINT("Raw flow stats: min=%.2f, max=%.2f, avg=%.2f\n", raw_min, raw_max, raw_avg);
 
-    double magnitudes[count];
-    int valid_count = 0;
     int64_t sum_fx = 0;
+    double valid_abs_y[count];
+    int valid_count = 0;
 
     for (int i = 0; i < count; i++) {
         int32_t fx = flow_xy[2 * i];
         int32_t fy = flow_xy[2 * i + 1];
         sum_fx += fx;
-        double mag = sqrt((double)fx * fx + (double)fy * fy);
-        magnitudes[valid_count++] = mag;
-        OF_PRINT("  i=%d: fx=%ld, fy=%ld, magnitude=%.2f\n", i, (long)fx, (long)fy, mag);
+        if (fy != 0) {
+            valid_abs_y[valid_count++] = fabs((double)fy);
+        }
+        // Printing each vector's fx and fy
+        // OF_PRINT("  i=%d: fx=%ld, fy=%ld\n", i, (long)fx, (long)fy);
     }
 
-    double median_mag = 0;
-    if (valid_count > 0) {
-        qsort(magnitudes, valid_count, sizeof(double), cmp_desc); // sort descending
-        median_mag = magnitudes[valid_count/2]; // or use another robust statistic
-    }
-
-    // Optionally, compute confidence based on valid_count/total_count:
-    float count_ratio = (float)valid_count / count;
-    // Use confidence (e.g., if count_ratio < FLOW_CONFIDENCE_THRESHOLD, ignore the measurement)
-    if (count_ratio < FLOW_CONFIDENCE_THRESHOLD) {
-        OF_PRINT("Low confidence (%.2f), ignoring flow measurement\n", count_ratio);
-        motion_magnitude = 0;
+    if (count > 0) {
+        motion_x = sum_fx / count;
+        if (valid_count > 0) {
+            qsort(valid_abs_y, valid_count, sizeof(double), cmp_desc);
+            int n = (valid_count >= 5) ? 5 : valid_count;
+            double sum_top = 0.0;
+            for (int i = 0; i < n; i++) {
+                sum_top += valid_abs_y[i];
+            }
+            motion_magnitude = sum_top / n;
+        } else {
+            motion_magnitude = 0;
+        }
     } else {
-        motion_magnitude = median_mag;
+        motion_x = 0;
+        motion_magnitude = 0;
     }
 
-    motion_x = sum_fx / count;
-
-    // Clamp if the median is excessively high:
-    if (motion_magnitude > 100.0f) {
-        OF_PRINT("Flow magnitude too high (%.2f), clamping measurement\n", motion_magnitude);
-        motion_magnitude = 100.0f;
+    if (motion_magnitude > 100.0) {
+        OF_PRINT("Flow magnitude too high (%.2f), discarding measurement\n", motion_magnitude);
+        motion_x = 0;
+        motion_magnitude = 100;
     }
-    
-    OF_PRINT("Average fx=%ld, robust flow magnitude=%.2f\n", (long)motion_x, motion_magnitude);
+
+    // Final summary print only:
+    OF_PRINT("[%f] Average fx=%ld, averaged top 5 |fy|=%.2f\n",
+             get_sys_time_float(), (long)motion_x, motion_magnitude);
 }
-//  static void of_vector_callback(uint8_t sender_id, uint8_t count, int32_t *flow_xy) {
-//      OF_PRINT("Callback: count=%d, sender_id=%d\n", count, sender_id);
 
-//     // --- NEW: Compute raw flow magnitudes statistics ---
-//     double raw_min = 1e6, raw_max = 0;
-//     double sum_magnitudes = 0;
-//     for (int i = 0; i < count; i++) {
-//         int32_t fx = flow_xy[2 * i];
-//         int32_t fy = flow_xy[2 * i + 1];
-//         double magnitude = sqrt((double)fx * fx + (double)fy * fy);
-//         if (magnitude < raw_min) raw_min = magnitude;
-//         if (magnitude > raw_max) raw_max = magnitude;
-//         sum_magnitudes += magnitude;
-//         OF_PRINT("  i=%d: fx=%ld, fy=%ld, raw magnitude=%.2f\n", i, (long)fx, (long)fy, magnitude);
-//     }
-//     double raw_avg = sum_magnitudes / count;
-//     OF_PRINT("Raw flow stats: min=%.2f, max=%.2f, avg=%.2f\n", raw_min, raw_max, raw_avg);
-//     // --- End NEW section ---
- 
-//      int64_t sum_fx = 0;
-//      // Array to hold valid absolute y values (as doubles)
-//      double valid_abs_y[count];
-//      int valid_count = 0;
- 
-//      for (int i = 0; i < count; i++) {
-//          int32_t fx = flow_xy[2 * i];
-//          int32_t fy = flow_xy[2 * i + 1];
-//          sum_fx += fx;
-//          if (fy != 0) {
-//              valid_abs_y[valid_count++] = fabs((double)fy);
-//          }
-//          OF_PRINT("  i=%d: fx=%ld, fy=%ld\n", i, (long)fx, (long)fy);
-//      }
- 
-//      if (count > 0) {
-//          motion_x = sum_fx / count;
-//          if (valid_count > 0) {
-//              qsort(valid_abs_y, valid_count, sizeof(double), cmp_desc);
-//              int n = (valid_count >= 5) ? 5 : valid_count;
-//              double sum_top = 0.0;
-//              for (int i = 0; i < n; i++) {
-//                  sum_top += valid_abs_y[i];
-//              }
-//              motion_magnitude = sum_top / n;
-//          } else {
-//              motion_magnitude = 0;
-//          }
-//      } else {
-//          motion_x = 0;
-//          motion_magnitude = 0;
-//      }
- 
-//      if (motion_magnitude > 100.0) {
-//          OF_PRINT("Flow magnitude too high (%.2f), discarding measurement\n", motion_magnitude);
-//          motion_x = 0;
-//          motion_magnitude = 100;
-//      }
- 
-//      OF_PRINT("Average fx=%ld, averaged top 5 |fy|=%.2f\n", (long)motion_x, motion_magnitude);
-//  }
  
  /**
   * Increase heading by delta degrees.
@@ -443,10 +402,9 @@
      update_distance_traveled();
      update_motion_average(motion_magnitude);
 
-    // --- NEW: Log overall state info ---
+    // --- Log overall state info ---
     OF_PRINT("Periodic: dt=%.2f, of_state=%d, current forward speed=%.2f, smoothed magnitude=%.2f\n",
         dt_s, (int)of_state, current_forward_speed, (float)smoothed_magnitude);
-    // --- End NEW section ---
  
      bool reliable_flow = (confidence_level > FLOW_CONFIDENCE_THRESHOLD);
      bool obstacle_detected = reliable_flow && (smoothed_magnitude > caution_threshold);
@@ -518,10 +476,9 @@
             float diff = current_psi - nav.heading;
             FLOAT_ANGLE_NORMALIZE(diff);
 
-            // --- NEW: Log current heading information ---
+            // --- Log current heading information ---
             OF_PRINT("ROTATING state: current_psi=%.2f deg, nav.heading=%.2f deg, heading error=%.2f deg\n",
                 DegOfRad(current_psi), DegOfRad(nav.heading), DegOfRad(diff));
-            // --- End NEW section ---
 
             // During rotation, ignore the optical flow magnitude by using 0 for speed adjustment.
             // This prevents massive optical flow values (from turning) from affecting obstacle detection.
