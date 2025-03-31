@@ -30,10 +30,9 @@ This folder contains various Python scripts showcasing our perception pipeline d
 - `decision_logic/no_paspoes.py`  
   Our final **Python-based perception logic**. The corresponding C implementation contains important adaptations.
 
-- `ROCmultiplefiles.py`
-- `ROCofground.py`
-- `no_paspoes_adjustedforROC.py`
+- `ROCmultiplefiles.py`, `ROCofground.py`, `no_paspoes_adjustedforROC.py`
   Scripts used to make roc curves of the ground filter.
+
 ---
 
 ## 🌅 Horizon Detection using YUV Filter
